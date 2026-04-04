@@ -27,14 +27,14 @@ Admins can:
 
 ### Backend
 - Java 21
-- Spring Boot
+- Spring Boot 3.2.4
 - Spring Security
 - OAuth2 (Google Login)
 - JPA / Hibernate
 - MySQL
 
 ### Frontend
-- React.js
+- React.js (Vite)
 - Axios
 - React Router
 
@@ -44,7 +44,56 @@ Admins can:
 
 ---
 
-## 📦 System Modules
+## 🚀 Getting Started
+
+### Backend Setup
+1. **Environment Sync**: Ensure you have **Java 21** and **Maven** installed.
+2. **Database Connection**: 
+   - Create a MySQL database named `smart_campus_hub`.
+   - Update `backend/src/main/resources/application.properties` with your local MySQL `username` and `password`.
+3. **Dependencies**: 
+   - Run `mvn clean install` inside the `backend` folder to download all required dependencies.
+   - Alternatively, import the project into your IDE (IntelliJ/Eclipse) using the `pom.xml` file.
+4. **Running the App**: Execute `./mvnw spring-boot:run` to start the server on `http://localhost:8080/api/v1`.
+
+### Frontend Setup
+1. Navigate to the `frontend` directory.
+2. Run `npm install` to install dependencies.
+3. Run `npm run dev` to start the development server.
+
+---
+
+## 📂 Project Structure
+
+### Backend Architecture
+The backend follows a standard N-tier architecture for clean separation of concerns:
+- `controller`: REST API endpoints.
+- `service`: Business logic layer.
+- `model`: Entity definitions (JPA).
+- `repository`: Data access layer (Spring Data JPA).
+- `dto`: Data Transfer Objects for API requests/responses.
+- `exception`: Global exception handling.
+- `config`: Security and system configurations.
+
+### Frontend Architecture
+- `src/api`: Axios instances and API services.
+- `src/components`: Reusable UI components.
+- `src/context`: React Context for state management (Auth, etc.).
+- `src/pages`: Main application views.
+- `src/routes`: Route definitions.
+- `src/styles`: Global and component-specific styles.
+
+---
+
+## �️ Development Guidelines
+
+### Folder Structure & Git
+To ensure the project structure is preserved on GitHub, empty folders contain a `.gitkeep` file.
+- **Rule**: Once a folder has a real code file inside it, you can delete the `.gitkeep`. If the folder is empty, keep the `.gitkeep`.
+
+---
+
+## �📦 System Modules
 
 ### Module A – Facilities & Assets Catalogue
 - CRUD operations for resources
