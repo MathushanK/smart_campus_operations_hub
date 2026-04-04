@@ -1,0 +1,33 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+**/._*
+**/.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDEs and editors
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# Node modules (just in case they exist in root)
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Build outputs
+target/
+out/
+build/
+
+# Logs
+*.log
+logs/
