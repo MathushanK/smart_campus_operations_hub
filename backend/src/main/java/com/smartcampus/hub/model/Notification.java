@@ -2,8 +2,11 @@ package com.smartcampus.hub.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import lombok.Data;
 
+@Data
 @Entity
+
 public class Notification {
 
     @Id
