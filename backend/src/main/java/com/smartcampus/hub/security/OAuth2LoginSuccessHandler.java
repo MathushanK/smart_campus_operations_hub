@@ -23,13 +23,21 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         for (GrantedAuthority authority : authorities) {
 
+            // 👑 ADMIN
             if (authority.getAuthority().equals("ROLE_ADMIN")) {
                 response.sendRedirect("/api/v1/admin/dashboard");
                 return;
             }
 
-            if (authority.getAuthority().equals("ROLE_USER")) {
-                response.sendRedirect("/api/v1/notifications");
+            // 🛠 TECHNICIAN
+            else if (authority.getAuthority().equals("ROLE_TECHNICIAN")) {
+                response.sendRedirect("/api/v1/technician/dashboard");
+                return;
+            }
+
+            // 👤 USER
+            else if (authority.getAuthority().equals("ROLE_USER")) {
+                response.sendRedirect("/api/v1/user/dashboard");
                 return;
             }
         }

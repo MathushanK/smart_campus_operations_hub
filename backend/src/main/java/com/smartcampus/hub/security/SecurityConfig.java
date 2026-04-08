@@ -17,27 +17,43 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/v1/notifications/**").hasAnyRole("USER", "ADMIN")
-                .anyRequest().authenticated()
-            )
-            .oauth2Login(oauth -> oauth
-                .successHandler(successHandler)   // 🔥 IMPORTANT
-                .userInfoEndpoint(userInfo -> userInfo
-                    .userService(customOAuth2UserService)
-                )
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/")
-                .permitAll()
-            );
+    http
+        .csrf(csrf -> csrf.disable())
+        .authorizeHttpRequests(auth -> auth
 
-        return http.build();
-    }
+            // 👑 ADMIN
+            .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+
+            // 🛠 TECHNICIAN
+            .requestMatchers("/api/v1/technician/**").hasRole("TECHNICIAN")
+
+            // 🔔 Notifications (all roles)
+            .requestMatchers("/api/v1/notifications/**")
+                .hasAnyRole("USER", "ADMIN", "TECHNICIAN")
+
+            // 👤 User endpoints
+            .requestMatchers("/api/v1/user/**")
+                .hasAnyRole("USER", "ADMIN", "TECHNICIAN")
+
+            // others
+            .anyRequest().authenticated()
+        )
+
+        .oauth2Login(oauth -> oauth
+            .successHandler(successHandler)   // ✅ already correct
+            .userInfoEndpoint(userInfo -> userInfo
+                .userService(customOAuth2UserService)
+            )
+        )
+
+        .logout(logout -> logout
+            .logoutUrl("/logout")
+            .logoutSuccessUrl("/")
+            .permitAll()
+        );
+
+    return http.build();
+}
 }
