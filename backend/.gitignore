@@ -38,3 +38,4 @@ build/
 *.tmp
 *~
 .DS_Store
+.env
