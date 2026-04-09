@@ -1,6 +1,6 @@
 package com.smartcampus.hub.security;
 
-import jakarta.servlet.ServletException;
+
 import jakarta.servlet.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,35 +14,31 @@ import java.util.Collection;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        Authentication authentication)
-            throws IOException, ServletException {
+public void onAuthenticationSuccess(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    Authentication authentication)
+        throws IOException {
 
-        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+    Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
 
-        for (GrantedAuthority authority : authorities) {
+    for (GrantedAuthority authority : authorities) {
 
-            // 👑 ADMIN
-            if (authority.getAuthority().equals("ROLE_ADMIN")) {
-                response.sendRedirect("/api/v1/admin/dashboard");
-                return;
-            }
-
-            // 🛠 TECHNICIAN
-            else if (authority.getAuthority().equals("ROLE_TECHNICIAN")) {
-                response.sendRedirect("/api/v1/technician/dashboard");
-                return;
-            }
-
-            // 👤 USER
-            else if (authority.getAuthority().equals("ROLE_USER")) {
-                response.sendRedirect("/api/v1/user/dashboard");
-                return;
-            }
+        if (authority.getAuthority().equals("ROLE_ADMIN")) {
+            response.sendRedirect("http://localhost:5173/admin/dashboard");
+            return;
         }
 
-        // fallback
-        response.sendRedirect("/");
+        if (authority.getAuthority().equals("ROLE_TECHNICIAN")) {
+            response.sendRedirect("http://localhost:5173/technician/dashboard");
+            return;
+        }
+
+        if (authority.getAuthority().equals("ROLE_USER")) {
+            response.sendRedirect("http://localhost:5173/user/dashboard");
+            return;
+        }
     }
+
+    response.sendRedirect("http://localhost:5173");
+}
 }
