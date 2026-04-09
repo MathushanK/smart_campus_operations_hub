@@ -20,7 +20,9 @@ public class SecurityConfig {
 public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
     http
+        .cors(cors -> {})   
         .csrf(csrf -> csrf.disable())
+
         .authorizeHttpRequests(auth -> auth
 
             // 👑 ADMIN
@@ -37,12 +39,11 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             .requestMatchers("/api/v1/user/**")
                 .hasAnyRole("USER", "ADMIN", "TECHNICIAN")
 
-            // others
             .anyRequest().authenticated()
         )
 
         .oauth2Login(oauth -> oauth
-            .successHandler(successHandler)   // ✅ already correct
+            .successHandler(successHandler)
             .userInfoEndpoint(userInfo -> userInfo
                 .userService(customOAuth2UserService)
             )
@@ -50,7 +51,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         .logout(logout -> logout
             .logoutUrl("/logout")
-            .logoutSuccessUrl("/")
+            .logoutSuccessUrl("http://localhost:5173")
             .permitAll()
         );
 
