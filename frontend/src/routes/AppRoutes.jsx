@@ -1,17 +1,27 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoutes";
 import Login from "../pages/Login";
 import AdminDashboard from "../pages/AdminDashbord.jsx";
 import UserDashboard from "../pages/UserDashboard.jsx";
 import TechnicianDashboard from "../pages/TechnicianDashboard.jsx";
+import NotificationsPage from "../pages/NotificationsPage.jsx";
+import { useAuth } from "../context/AuthContext";
+import { getDashboardPath } from "../utils/auth";
+
+function DashboardRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={getDashboardPath(user?.role)} replace />;
+}
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
-      <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/user/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
-      <Route path="/technician/dashboard" element={<ProtectedRoute><TechnicianDashboard /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
+      <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/user/dashboard" element={<ProtectedRoute allowedRoles={["user"]}><UserDashboard /></ProtectedRoute>} />
+      <Route path="/technician/dashboard" element={<ProtectedRoute allowedRoles={["technician"]}><TechnicianDashboard /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
     </Routes>
   );
 }

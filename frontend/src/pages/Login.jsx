@@ -1,30 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getDashboardPath } from "../utils/auth";
 
 function Login() {
 
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState("user");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate(getDashboardPath(user.role), { replace: true });
+    }
+  }, [loading, navigate, user]);
 
   const handleLogin = () => {
     window.location.href = "http://localhost:8080/api/v1/oauth2/authorization/google";
-  };
-
-  const handleSignIn = () => {
-    if (!email || !password) {
-      alert("Please enter both email and password.");
-      return;
-    }
-
-    const newUser = { id: Date.now(), email, role };
-    setUser(newUser);
-    setOpen(false);
-    navigate("/user/dashboard");
   };
 
   return (
@@ -88,7 +80,7 @@ function Login() {
       {open && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
 
-          <div className="bg-white w-100 p-6 rounded-xl shadow-lg relative">
+          <div className="bg-white w-full max-w-md p-6 rounded-xl shadow-lg relative">
 
             {/* Close */}
             <button
@@ -104,63 +96,17 @@ function Login() {
             </h2>
 
             <p className="text-gray-500 mb-4">
-              Sign in to access your campus dashboard
+              Sign in with your campus Google account.
             </p>
 
-            {/* Role Tabs (UI only) */}
-            <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
-
-              <button
-                type="button"
-                onClick={() => setRole("user")}
-                className={`flex-1 py-2 rounded-lg transition ${role === "user" ? "bg-white shadow text-blue-700" : "text-gray-600 hover:text-blue-700"}`}
-              >
-                User
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRole("admin")}
-                className={`flex-1 py-2 rounded-lg transition ${role === "admin" ? "bg-white shadow text-blue-700" : "text-gray-600 hover:text-blue-700"}`}
-              >
-                Admin
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRole("technician")}
-                className={`flex-1 py-2 rounded-lg transition ${role === "technician" ? "bg-white shadow text-blue-700" : "text-gray-600 hover:text-blue-700"}`}
-              >
-                Technician
-              </button>
-
-            </div>
-
-            {/* Google Login */}
-            <button
-              onClick={handleLogin}
-              className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 mb-4 hover:bg-gray-50"
-            >
-              <img
-                src="https://www.svgrepo.com/show/475656/google-color.svg"
-                alt="google"
-                className="w-5"
-              />
-              Continue with Google
-            </button>
-
-            {/* Divider */}
-            <div className="text-center text-gray-400 text-sm mb-4">
-              OR CONTINUE WITH EMAIL
-            </div>
-
-            {/* Email */}
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4 text-left">
+              
+              <div className="space-y-2 text-sm text-blue-800">
+                {/* Email */}
             <input
               type="email"
               placeholder="your.email@campus.edu"
               className="w-full border p-2 rounded-lg mb-3"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
             />
 
             {/* Password */}
@@ -168,17 +114,25 @@ function Login() {
               type="password"
               placeholder="Password"
               className="w-full border p-2 rounded-lg mb-4"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
             />
-
             {/* Sign in */}
-            <button
-              type="button"
-              onClick={handleSignIn}
-              className="w-full bg-blue-700 text-white py-2 rounded-lg"
-            >
+            <button className="w-full bg-blue-700 text-white py-2 rounded-lg">
               Sign In
+            </button>
+              </div>
+            </div>
+
+            <button
+              onClick={handleLogin}
+              className="w-full border py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50"
+              disabled={loading}
+            >
+              <img
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="google"
+                className="w-5"
+              />
+              {loading ? "Checking session..." : "Continue with Google"}
             </button>
 
           </div>
