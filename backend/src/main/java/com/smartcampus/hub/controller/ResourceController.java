@@ -1,61 +1,61 @@
 package com.smartcampus.hub.controller;
 
-import com.smartcampus.hub.model.Resource;
+import com.smartcampus.hub.dto.ResourceDTO;
 import com.smartcampus.hub.service.ResourceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/resources")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // In production, replace with specific origins
 public class ResourceController {
 
-    private final ResourceService resourceService;
+    private final ResourceService service;
 
+    // GET all + search/filter
     @GetMapping
-    public ResponseEntity<List<Resource>> getAllResources(@RequestParam(required = false) String search) {
-        if (search != null && !search.isBlank()) {
-            return ResponseEntity.ok(resourceService.searchResources(search));
-        }
-        return ResponseEntity.ok(resourceService.getAllResources());
+    public ResponseEntity<List<ResourceDTO>> getAll(
+            @RequestParam(required = false) Integer typeId,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) Integer minCapacity,
+            @RequestParam(required = false) String status) {
+        return ResponseEntity.ok(service.search(typeId, location, minCapacity, status));
     }
 
+    // GET by ID
     @GetMapping("/{id}")
-    public ResponseEntity<Resource> getResourceById(@PathVariable Long id) {
-        return resourceService.getResourceById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ResourceDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(service.getById(id));
     }
 
-    @GetMapping("/type/{type}")
-    public ResponseEntity<List<Resource>> getResourcesByType(@PathVariable String type) {
-        return ResponseEntity.ok(resourceService.getResourcesByType(type));
-    }
-
+    // POST create
     @PostMapping
-    public ResponseEntity<Resource> createResource(@Valid @RequestBody Resource resource) {
-        Resource createdResource = resourceService.createResource(resource);
-        return new ResponseEntity<>(createdResource, HttpStatus.CREATED);
+    public ResponseEntity<ResourceDTO> create(@Valid @RequestBody ResourceDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(dto));
     }
 
+    // PUT update
     @PutMapping("/{id}")
-    public ResponseEntity<Resource> updateResource(@PathVariable Long id, @Valid @RequestBody Resource resourceDetails) {
-        return resourceService.updateResource(id, resourceDetails)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ResourceDTO> update(@PathVariable Integer id, @Valid @RequestBody ResourceDTO dto) {
+        return ResponseEntity.ok(service.update(id, dto));
     }
 
+    // DELETE
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
-        if (resourceService.deleteResource(id)) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // PATCH – update status only (ACTIVE / OUT_OF_SERVICE)
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ResourceDTO> updateStatus(@PathVariable Integer id,
+                                                     @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(service.updateStatus(id, body.get("status")));
     }
 }

@@ -1,5 +1,6 @@
 package com.smartcampus.hub.controller;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -10,4 +11,8 @@ public class UserController {
     public String userDashboard() {
         return "Welcome User!";
     }
+    @GetMapping("/me")
+public Object getCurrentUser(Authentication authentication) {
+    return authentication.getPrincipal();
+}
 }
