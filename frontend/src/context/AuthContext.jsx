@@ -1,5 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from "react";
 import API from "../api/api";
+import { normalizeUser } from "../utils/auth";
 
 const AuthContext = createContext();
 
@@ -11,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   // 🔥 check session
   useEffect(() => {
     API.get("/user/me")
-      .then(res => setUser(res.data))
+      .then((res) => setUser(normalizeUser(res.data)))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
