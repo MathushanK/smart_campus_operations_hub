@@ -1,15 +1,17 @@
 package com.smartcampus.hub.repository;
 
 import com.smartcampus.hub.model.Resource;
+import com.smartcampus.hub.model.Resource.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 
-@Repository
-public interface ResourceRepository extends JpaRepository<Resource, Long> {
-    List<Resource> findByType(String type);
-    List<Resource> findByLocation(String location);
-    List<Resource> findByIsAvailable(Boolean isAvailable);
-    List<Resource> findByNameContainingIgnoreCase(String name);
+public interface ResourceRepository extends JpaRepository<Resource, Integer> {
+
+    List<Resource> findByResourceType_TypeId(Integer typeId);
+
+    List<Resource> findByStatus(Status status);
+
+    List<Resource> findByLocationContainingIgnoreCase(String location);
+
+    List<Resource> findByCapacityGreaterThanEqual(Integer capacity);
 }

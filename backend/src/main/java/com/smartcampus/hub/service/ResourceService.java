@@ -1,61 +1,106 @@
 package com.smartcampus.hub.service;
 
+import com.smartcampus.hub.dto.ResourceDTO;
 import com.smartcampus.hub.model.Resource;
+import com.smartcampus.hub.model.Resource.Status;
+import com.smartcampus.hub.model.ResourceType;
 import com.smartcampus.hub.repository.ResourceRepository;
+import com.smartcampus.hub.repository.ResourceTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ResourceService {
 
-    private final ResourceRepository resourceRepository;
+    private final ResourceRepository resourceRepo;
+    private final ResourceTypeRepository typeRepo;
 
-    public List<Resource> getAllResources() {
-        return resourceRepository.findAll();
+    public List<ResourceDTO> getAll() {
+        return resourceRepo.findAll().stream().map(this::toDTO).collect(Collectors.toList());
     }
 
-    public List<Resource> searchResources(String name) {
-        if (name == null || name.isBlank()) {
-            return getAllResources();
+    public ResourceDTO getById(Integer id) {
+        return toDTO(findResource(id));
+    }
+
+    public List<ResourceDTO> search(Integer typeId, String location, Integer minCapacity, String status) {
+        List<Resource> all = resourceRepo.findAll();
+
+        return all.stream()
+            .filter(r -> typeId == null || r.getResourceType().getTypeId().equals(typeId))
+            .filter(r -> location == null || r.getLocation().toLowerCase().contains(location.toLowerCase()))
+            .filter(r -> minCapacity == null || (r.getCapacity() != null && r.getCapacity() >= minCapacity))
+            .filter(r -> status == null || r.getStatus().name().equalsIgnoreCase(status))
+            .map(this::toDTO)
+            .collect(Collectors.toList());
+    }
+
+    public ResourceDTO create(ResourceDTO dto) {
+        Resource r = toEntity(dto);
+        return toDTO(resourceRepo.save(r));
+    }
+
+    public ResourceDTO update(Integer id, ResourceDTO dto) {
+        Resource r = findResource(id);
+        r.setName(dto.getName());
+        r.setCapacity(dto.getCapacity());
+        r.setLocation(dto.getLocation());
+        r.setAvailabilityStart(dto.getAvailabilityStart());
+        r.setAvailabilityEnd(dto.getAvailabilityEnd());
+        if (dto.getStatus() != null) r.setStatus(dto.getStatus());
+        if (dto.getTypeId() != null) {
+            ResourceType type = typeRepo.findById(dto.getTypeId())
+                    .orElseThrow(() -> new RuntimeException("Resource type not found"));
+            r.setResourceType(type);
         }
-        return resourceRepository.findByNameContainingIgnoreCase(name);
+        return toDTO(resourceRepo.save(r));
     }
 
-    public List<Resource> getResourcesByType(String type) {
-        return resourceRepository.findByType(type);
+    public void delete(Integer id) {
+        resourceRepo.deleteById(id);
     }
 
-    public Optional<Resource> getResourceById(Long id) {
-        return resourceRepository.findById(id);
+    public ResourceDTO updateStatus(Integer id, String status) {
+        Resource r = findResource(id);
+        r.setStatus(Status.valueOf(status.toUpperCase()));
+        return toDTO(resourceRepo.save(r));
     }
 
-    public Resource createResource(Resource resource) {
-        return resourceRepository.save(resource);
+    private Resource findResource(Integer id) {
+        return resourceRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Resource not found with id: " + id));
     }
 
-    @Transactional
-    public Optional<Resource> updateResource(Long id, Resource resourceDetails) {
-        return resourceRepository.findById(id).map(existingResource -> {
-            existingResource.setName(resourceDetails.getName());
-            existingResource.setDescription(resourceDetails.getDescription());
-            existingResource.setType(resourceDetails.getType());
-            existingResource.setLocation(resourceDetails.getLocation());
-            existingResource.setCapacity(resourceDetails.getCapacity());
-            existingResource.setIsAvailable(resourceDetails.getIsAvailable());
-            return resourceRepository.save(existingResource);
-        });
+    private Resource toEntity(ResourceDTO dto) {
+        Resource r = new Resource();
+        r.setName(dto.getName());
+        r.setCapacity(dto.getCapacity());
+        r.setLocation(dto.getLocation());
+        r.setAvailabilityStart(dto.getAvailabilityStart());
+        r.setAvailabilityEnd(dto.getAvailabilityEnd());
+        r.setStatus(dto.getStatus() != null ? dto.getStatus() : Status.ACTIVE);
+        ResourceType type = typeRepo.findById(dto.getTypeId())
+                .orElseThrow(() -> new RuntimeException("Resource type not found"));
+        r.setResourceType(type);
+        return r;
     }
 
-    public boolean deleteResource(Long id) {
-        if (resourceRepository.existsById(id)) {
-            resourceRepository.deleteById(id);
-            return true;
+    private ResourceDTO toDTO(Resource r) {
+        ResourceDTO dto = new ResourceDTO();
+        dto.setResourceId(r.getResourceId());
+        dto.setName(r.getName());
+        dto.setCapacity(r.getCapacity());
+        dto.setLocation(r.getLocation());
+        dto.setStatus(r.getStatus());
+        dto.setAvailabilityStart(r.getAvailabilityStart());
+        dto.setAvailabilityEnd(r.getAvailabilityEnd());
+        if (r.getResourceType() != null) {
+            dto.setTypeId(r.getResourceType().getTypeId());
+            dto.setTypeName(r.getResourceType().getTypeName());
         }
-        return false;
+        return dto;
     }
 }

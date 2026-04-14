@@ -8,9 +8,11 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "resources")
+@Data
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,34 +22,35 @@ public class Resource {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "resource_id")
+    private Integer resourceId;
 
     @NotBlank(message = "Resource name is required")
     @Column(nullable = false)
     private String name;
 
-    @NotBlank(message = "Resource description is required")
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @ManyToOne
+    @JoinColumn(name = "type_id")
+    private ResourceType resourceType;
 
-    @NotBlank(message = "Resource type is required")
-    @Column(nullable = false)
-    private String type; // e.g. ROOM, EQUIPMENT, VEHICLE
-
-    @NotBlank(message = "Location is required")
-    @Column(nullable = false)
-    private String location;
-
-    @NotNull(message = "Capacity is required")
+    @Column(name = "capacity")
     private Integer capacity;
 
+    @Column(name = "location", length = 255)
+    private String location;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     @Builder.Default
-    private Boolean isAvailable = true;
+    private Status status = Status.ACTIVE;
 
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "availability_start")
+    private LocalTime availabilityStart;
 
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    @Column(name = "availability_end")
+    private LocalTime availabilityEnd;
+
+    public enum Status {
+        ACTIVE, OUT_OF_SERVICE
+    }
 }

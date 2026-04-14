@@ -25,6 +25,12 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         .authorizeHttpRequests(auth -> auth
 
+            // ✅ Member 1 – permit all resource/resource-type endpoints for now
+                .requestMatchers("/resources/**").permitAll()
+                .requestMatchers("/resources").permitAll()
+                .requestMatchers("/resource-types/**").permitAll()
+                .requestMatchers("/resource-types").permitAll() 
+
             // 👑 ADMIN
             .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
