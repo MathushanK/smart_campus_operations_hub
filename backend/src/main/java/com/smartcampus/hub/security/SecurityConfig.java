@@ -3,6 +3,10 @@ package com.smartcampus.hub.security;
 import org.springframework.context.annotation.*;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.*;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -17,50 +21,69 @@ public class SecurityConfig {
     }
 
     @Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-    http
-        .cors(cors -> {})   
-        .csrf(csrf -> csrf.disable())
+        http
+            .cors(cors -> {})
+            .csrf(csrf -> csrf.disable())
 
-        .authorizeHttpRequests(auth -> auth
+            .authorizeHttpRequests(auth -> auth
 
-            // ✅ Member 1 – permit all resource/resource-type endpoints for now
+                // ✅ FIX: allow /me without login (VERY IMPORTANT)
+                .requestMatchers("/api/v1/user/me").permitAll()
+
+                // ✅ Member 1 endpoints
                 .requestMatchers("/resources/**").permitAll()
                 .requestMatchers("/resources").permitAll()
                 .requestMatchers("/resource-types/**").permitAll()
-                .requestMatchers("/resource-types").permitAll() 
+                .requestMatchers("/resource-types").permitAll()
 
-            // 👑 ADMIN
-            .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                // 👑 ADMIN
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-            // 🛠 TECHNICIAN
-            .requestMatchers("/api/v1/technician/**").hasRole("TECHNICIAN")
+                // 🛠 TECHNICIAN
+                .requestMatchers("/api/v1/technician/**").hasRole("TECHNICIAN")
 
-            // 🔔 Notifications (all roles)
-            .requestMatchers("/api/v1/notifications/**")
-                .hasAnyRole("USER", "ADMIN", "TECHNICIAN")
+                // 🔔 Notifications
+                .requestMatchers("/api/v1/notifications/**")
+                    .hasAnyRole("USER", "ADMIN", "TECHNICIAN")
 
-            // 👤 User endpoints
-            .requestMatchers("/api/v1/user/**")
-                .hasAnyRole("USER", "ADMIN", "TECHNICIAN")
+                // 👤 User endpoints
+                .requestMatchers("/api/v1/user/**")
+                    .hasAnyRole("USER", "ADMIN", "TECHNICIAN")
 
-            .anyRequest().authenticated()
-        )
-
-        .oauth2Login(oauth -> oauth
-            .successHandler(successHandler)
-            .userInfoEndpoint(userInfo -> userInfo
-                .userService(customOAuth2UserService)
+                .anyRequest().authenticated()
             )
-        )
 
-        .logout(logout -> logout
-            .logoutUrl("/logout")
-            .logoutSuccessUrl("http://localhost:5173")
-            .permitAll()
-        );
+            .oauth2Login(oauth -> oauth
+                .successHandler(successHandler)
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(customOAuth2UserService)
+                )
+            )
 
-    return http.build();
-}
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("http://localhost:5173")
+                .permitAll()
+            );
+
+        return http.build();
+    }
+
+    // ✅ FIX: CORS configuration (REQUIRED)
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
+    }
 }

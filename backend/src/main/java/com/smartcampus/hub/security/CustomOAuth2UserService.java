@@ -5,6 +5,8 @@ import com.smartcampus.hub.model.User;
 import com.smartcampus.hub.repository.RoleRepository;
 import com.smartcampus.hub.repository.UserRepository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.*;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -15,6 +17,8 @@ import java.util.*;
 
 @Service
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CustomOAuth2UserService.class);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -33,6 +37,7 @@ public OAuth2User loadUser(OAuth2UserRequest request)
 
     String email = oauthUser.getAttribute("email");
     String name = oauthUser.getAttribute("name");
+    logger.info("Processing OAuth2 user: email={}, name={}", email, name);
 
     User user = userRepository.findByEmail(email)
             .orElseGet(() -> {
@@ -44,9 +49,13 @@ public OAuth2User loadUser(OAuth2UserRequest request)
                         .orElseThrow(() -> new RuntimeException("Role not found"));
 
                 newUser.getRoles().add(role);
+                logger.info("Creating new local user for {}", email);
 
                 return userRepository.save(newUser);
             });
+
+    logger.info("Resolved local user id={} with roles={}", user.getId(),
+            user.getRoles().stream().map(Role::getName).toList());
 
     List<SimpleGrantedAuthority> authorities = user.getRoles()
             .stream()
