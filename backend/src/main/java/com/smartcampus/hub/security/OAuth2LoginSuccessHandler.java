@@ -2,6 +2,7 @@ package com.smartcampus.hub.security;
 
 
 import jakarta.servlet.http.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -12,6 +13,13 @@ import java.util.Collection;
 
 @Component
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
+
+    private final String frontendUrl;
+
+    public OAuth2LoginSuccessHandler(
+            @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl) {
+        this.frontendUrl = frontendUrl;
+    }
 
     @Override
 public void onAuthenticationSuccess(HttpServletRequest request,
@@ -24,21 +32,21 @@ public void onAuthenticationSuccess(HttpServletRequest request,
     for (GrantedAuthority authority : authorities) {
 
         if (authority.getAuthority().equals("ROLE_ADMIN")) {
-            response.sendRedirect("http://localhost:5173/admin/dashboard");
+            response.sendRedirect(frontendUrl + "/admin/dashboard");
             return;
         }
 
         if (authority.getAuthority().equals("ROLE_TECHNICIAN")) {
-            response.sendRedirect("http://localhost:5173/technician/dashboard");
+            response.sendRedirect(frontendUrl + "/technician/dashboard");
             return;
         }
 
         if (authority.getAuthority().equals("ROLE_USER")) {
-            response.sendRedirect("http://localhost:5173/user/dashboard");
+            response.sendRedirect(frontendUrl + "/user/dashboard");
             return;
         }
     }
 
-    response.sendRedirect("http://localhost:5173");
+    response.sendRedirect(frontendUrl);
 }
 }

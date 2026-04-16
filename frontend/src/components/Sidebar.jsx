@@ -1,6 +1,7 @@
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { LOGOUT_URL } from "../config/runtime";
 import { getDashboardPath } from "../utils/auth";
 
 function Sidebar() {
@@ -38,7 +39,7 @@ function Sidebar() {
   };
 
   const handleLogout = () => {
-    window.location.href = "http://localhost:8080/api/v1/logout";
+    window.location.href = LOGOUT_URL;
   };
 
   return (

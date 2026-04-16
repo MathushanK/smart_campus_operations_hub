@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { OAUTH_LOGIN_URL } from "../config/runtime";
 import { getDashboardPath } from "../utils/auth";
 
 function Login() {
 
   const [open, setOpen] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const errorMessage = new URLSearchParams(location.search).get("error");
 
   useEffect(() => {
     if (!loading && user) {
@@ -15,8 +18,14 @@ function Login() {
     }
   }, [loading, navigate, user]);
 
+  useEffect(() => {
+    if (errorMessage) {
+      setOpen(true);
+    }
+  }, [errorMessage]);
+
   const handleLogin = () => {
-    window.location.href = "http://localhost:8080/api/v1/oauth2/authorization/google";
+    window.location.href = OAUTH_LOGIN_URL;
   };
 
   return (
@@ -98,6 +107,12 @@ function Login() {
             <p className="text-gray-500 mb-4">
               Sign in with your campus Google account.
             </p>
+
+            {errorMessage && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
+                {errorMessage}
+              </div>
+            )}
 
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4 text-left">
               
