@@ -135,7 +135,6 @@ function BookingUserPage() {
     }
 
     // Check availability window (inclusive boundaries)
-    // If window is 08:00-17:00, you can book 08:00-17:00 (includes both boundaries)
     if (selectedResource) {
       const start = formData.startTime;
       const end = formData.endTime;
@@ -145,7 +144,7 @@ function BookingUserPage() {
       // Use explicit comparison: start >= resStart AND end <= resEnd
       if (start < resStart || end > resEnd) {
         errors.time =
-          `Booking must be within availability window (${resStart} - ${resEnd}). Both boundaries are inclusive.`;
+          `Booking must be within availability window (${resStart} - ${resEnd}).`;
       }
 
       // Check attendees is required if resource has capacity
@@ -339,10 +338,21 @@ function BookingUserPage() {
                 }`}
               >
                 <option value="">Select a resource</option>
-                {resources.map((r) => (
-                  <option key={r.resourceId} value={r.resourceId}>
-                    {r.name} - {r.location}
-                  </option>
+                {Object.entries(
+                  resources.reduce((acc, r) => {
+                    const type = r.typeName || "Uncategorized";
+                    if (!acc[type]) acc[type] = [];
+                    acc[type].push(r);
+                    return acc;
+                  }, {})
+                ).map(([typeName, typeResources]) => (
+                  <optgroup key={typeName} label={typeName}>
+                    {typeResources.map((r) => (
+                      <option key={r.resourceId} value={r.resourceId}>
+                        {r.name} - {r.location}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               {selectedResource && (

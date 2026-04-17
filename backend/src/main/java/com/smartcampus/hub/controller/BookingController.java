@@ -123,7 +123,7 @@ public class BookingController {
     }
 
     /**
-     * Delete a pending booking from database
+     * Remove a pending booking 
      * DELETE /api/bookings/{bookingId}
      */
     @DeleteMapping("/{bookingId}")
