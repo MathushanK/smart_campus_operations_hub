@@ -70,13 +70,15 @@ public class BookingService {
     }
 
     /**
-     * Validates booking time is within resource availability window
+     * Validates booking time is within resource availability window (inclusive boundaries)
+     * If window is 08:00-17:00, you can book 08:00-17:00 (includes both boundaries)
      */
     private void validateAvailabilityWindow(Resource resource, LocalTime startTime, LocalTime endTime) {
         if (resource.getAvailabilityStart() == null || resource.getAvailabilityEnd() == null) {
             throw new IllegalArgumentException("Resource does not have availability window defined");
         }
 
+        // Boundaries are INCLUSIVE: startTime >= availabilityStart AND endTime <= availabilityEnd
         if (startTime.isBefore(resource.getAvailabilityStart()) || 
             endTime.isAfter(resource.getAvailabilityEnd())) {
             throw new IllegalArgumentException(
@@ -91,21 +93,23 @@ public class BookingService {
      * Validates attendees do not exceed resource capacity
      */
     private void validateCapacity(Resource resource, Integer attendees) {
-        // If attendees is null, skip validation
-        if (attendees == null) {
-            return;
-        }
+        // If resource has capacity defined, attendees is required
+        if (resource.getCapacity() != null) {
+            if (attendees == null || attendees == 0) {
+                throw new IllegalArgumentException("Expected attendees is required for this resource (capacity: " + resource.getCapacity() + ")");
+            }
 
-        // If resource has no capacity defined, attendees should not be filled
-        if (resource.getCapacity() == null) {
-            throw new IllegalArgumentException("This resource does not support capacity booking. Attendees field is not applicable");
-        }
-
-        if (attendees > resource.getCapacity()) {
-            throw new IllegalArgumentException(
-                    "Number of attendees (" + attendees + ") exceeds resource capacity (" +
-                    resource.getCapacity() + "). Please book another resource or slot"
-            );
+            if (attendees > resource.getCapacity()) {
+                throw new IllegalArgumentException(
+                        "Number of attendees (" + attendees + ") exceeds resource capacity (" +
+                        resource.getCapacity() + "). Please book another resource or slot"
+                );
+            }
+        } else {
+            // If resource has no capacity defined, attendees should not be filled
+            if (attendees != null && attendees > 0) {
+                throw new IllegalArgumentException("This resource does not support capacity booking. Attendees field is not applicable");
+            }
         }
     }
 
@@ -279,6 +283,28 @@ public class BookingService {
 
         Booking updatedBooking = bookingRepository.save(booking);
         return convertToDTO(updatedBooking);
+    }
+
+    /**
+     * Delete a pending booking from database (users can only delete their own PENDING bookings)
+     */
+    @Transactional
+    public void deleteBooking(Integer bookingId, Long userId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        // Check ownership - users can only delete their own bookings
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("You can only delete your own bookings");
+        }
+
+        // Check if booking status is PENDING
+        if (!booking.getStatus().equals(Booking.BookingStatus.PENDING)) {
+            throw new IllegalArgumentException("Only pending bookings can be deleted. Current status: " + booking.getStatus());
+        }
+
+        // Delete the booking from database
+        bookingRepository.deleteById(bookingId);
     }
 
     // ============ RETRIEVAL METHODS ============

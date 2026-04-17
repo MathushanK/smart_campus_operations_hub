@@ -39,6 +39,8 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
     Page<Booking> findByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Booking.BookingStatus status, Pageable pageable);
 
     // Find conflicting bookings - same resource, same date, overlapping times
+    // A booking conflicts only if it overlaps (starts before other ends AND ends after other starts)
+    // Back-to-back bookings (08:00-09:00 and 09:00-10:00) do NOT conflict
     @Query("SELECT b FROM Booking b WHERE b.resource.resourceId = :resourceId " +
            "AND b.date = :date " +
            "AND b.status IN ('PENDING', 'APPROVED') " +
@@ -51,6 +53,8 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
     );
 
     // Find conflicting bookings excluding a specific booking (for editing)
+    // A booking conflicts only if it overlaps (starts before other ends AND ends after other starts)
+    // Back-to-back bookings (08:00-09:00 and 09:00-10:00) do NOT conflict
     @Query("SELECT b FROM Booking b WHERE b.resource.resourceId = :resourceId " +
            "AND b.date = :date " +
            "AND b.status IN ('PENDING', 'APPROVED') " +

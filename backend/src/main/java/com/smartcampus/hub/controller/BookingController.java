@@ -106,9 +106,9 @@ public class BookingController {
 
     /**
      * Cancel a booking
-     * DELETE /api/bookings/{bookingId}
+     * PATCH /api/bookings/{bookingId}/cancel
      */
-    @DeleteMapping("/{bookingId}")
+    @PatchMapping("/{bookingId}/cancel")
     public ResponseEntity<?> cancelBooking(
             Authentication authentication,
             @PathVariable Integer bookingId) {
@@ -117,6 +117,24 @@ public class BookingController {
             
             BookingDTO booking = bookingService.cancelBooking(bookingId, user.getId(), false);
             return ResponseEntity.ok(createSuccessResponse("Booking cancelled successfully", booking));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(createErrorResponse(e.getMessage()));
+        }
+    }
+
+    /**
+     * Delete a pending booking from database
+     * DELETE /api/bookings/{bookingId}
+     */
+    @DeleteMapping("/{bookingId}")
+    public ResponseEntity<?> deleteBooking(
+            Authentication authentication,
+            @PathVariable Integer bookingId) {
+        try {
+            User user = getCurrentUser(authentication);
+            
+            bookingService.deleteBooking(bookingId, user.getId());
+            return ResponseEntity.ok(createSuccessResponse("Booking deleted successfully", null));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(createErrorResponse(e.getMessage()));
         }
@@ -160,17 +178,18 @@ public class BookingController {
 
     /**
      * Real-time conflict checking
-     * GET /api/bookings/check-conflicts?resourceId=1&date=2024-01-15&startTime=10:00:00&endTime=11:00:00
+     * GET /api/bookings/check-conflicts?resourceId=1&date=2024-01-15&startTime=10:00:00&endTime=11:00:00&excludeBookingId=5
      */
     @GetMapping("/check-conflicts")
     public ResponseEntity<?> checkConflicts(
             @RequestParam Integer resourceId,
             @RequestParam LocalDate date,
             @RequestParam LocalTime startTime,
-            @RequestParam LocalTime endTime) {
+            @RequestParam LocalTime endTime,
+            @RequestParam(required = false) Integer excludeBookingId) {
         try {
             BookingService.ConflictCheckResponse response = 
-                    bookingService.checkForConflicts(resourceId, date, startTime, endTime);
+                    bookingService.checkForConflicts(resourceId, date, startTime, endTime, excludeBookingId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(createErrorResponse(e.getMessage()));
@@ -207,9 +226,9 @@ public class BookingController {
 
     /**
      * Approve a pending booking
-     * POST /api/bookings/{bookingId}/approve
+     * PATCH /api/bookings/{bookingId}/approve
      */
-    @PostMapping("/{bookingId}/approve")
+    @PatchMapping("/{bookingId}/approve")
     public ResponseEntity<?> approveBooking(
             Authentication authentication,
             @PathVariable Integer bookingId) {
@@ -229,9 +248,9 @@ public class BookingController {
 
     /**
      * Reject a pending booking
-     * POST /api/bookings/{bookingId}/reject
+     * PATCH /api/bookings/{bookingId}/reject
      */
-    @PostMapping("/{bookingId}/reject")
+    @PatchMapping("/{bookingId}/reject")
     public ResponseEntity<?> rejectBooking(
             Authentication authentication,
             @PathVariable Integer bookingId,

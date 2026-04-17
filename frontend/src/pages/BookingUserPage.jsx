@@ -134,25 +134,27 @@ function BookingUserPage() {
       errors.endTime = "End time must be after start time";
     }
 
-    // Check availability window
+    // Check availability window (inclusive boundaries)
+    // If window is 08:00-17:00, you can book 08:00-17:00 (includes both boundaries)
     if (selectedResource) {
       const start = formData.startTime;
       const end = formData.endTime;
       const resStart = selectedResource.availabilityStart?.substring(0, 5);
       const resEnd = selectedResource.availabilityEnd?.substring(0, 5);
 
+      // Use explicit comparison: start >= resStart AND end <= resEnd
       if (start < resStart || end > resEnd) {
         errors.time =
-          `Booking must be within availability window (${resStart} - ${resEnd})`;
+          `Booking must be within availability window (${resStart} - ${resEnd}). Both boundaries are inclusive.`;
       }
 
-      // Check attendees vs capacity
-      if (
-        selectedResource.capacity &&
-        formData.attendees &&
-        parseInt(formData.attendees) > selectedResource.capacity
-      ) {
-        errors.attendees = `Attendees exceed capacity (${selectedResource.capacity})`;
+      // Check attendees is required if resource has capacity
+      if (selectedResource.capacity) {
+        if (!formData.attendees || parseInt(formData.attendees) === 0) {
+          errors.attendees = "Expected attendees is required for this resource";
+        } else if (parseInt(formData.attendees) > selectedResource.capacity) {
+          errors.attendees = `Attendees exceed capacity (${selectedResource.capacity})`;
+        }
       }
     }
 
@@ -237,16 +239,21 @@ function BookingUserPage() {
   };
 
   // Handle cancel
-  const handleCancel = async (bookingId) => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+  const handleCancel = async (bookingId, status) => {
+    const message = status === "PENDING" ? "Are you sure you want to remove this booking?" : "Are you sure you want to cancel this booking?";
+    if (!window.confirm(message)) return;
 
     try {
-      await API.delete(`/api/bookings/${bookingId}`);
-      setSuccess("Booking cancelled successfully!");
+      // Use DELETE for PENDING bookings (remove from database), PATCH for others (change status)
+      const endpoint = status === "PENDING" ? `/api/bookings/${bookingId}` : `/api/bookings/${bookingId}/cancel`;
+      const method = status === "PENDING" ? API.delete : API.patch;
+      await method(endpoint);
+      const successMsg = status === "PENDING" ? "Booking removed successfully!" : "Booking cancelled successfully!";
+      setSuccess(successMsg);
       fetchUserBookings();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to cancel booking";
+      const errorMsg = err.response?.data?.message || "Failed to process booking";
       setError(errorMsg);
     }
   };
@@ -453,7 +460,7 @@ function BookingUserPage() {
             {selectedResource?.capacity && (
               <div>
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Expected Attendees (Max: {selectedResource.capacity})
+                  Expected Attendees * (Max: {selectedResource.capacity})
                 </label>
                 <input
                   type="number"
@@ -464,6 +471,7 @@ function BookingUserPage() {
                   min="1"
                   max={selectedResource.capacity}
                   placeholder="Number of attendees"
+                  required
                   className={`w-full p-3 border rounded-lg ${
                     formErrors.attendees ? "border-red-500" : "border-gray-300"
                   }`}
@@ -639,16 +647,16 @@ function BookingUserPage() {
                         ✏️ Edit
                       </button>
                       <button
-                        onClick={() => handleCancel(booking.bookingId)}
+                        onClick={() => handleCancel(booking.bookingId, "PENDING")}
                         className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm"
                       >
-                        ✕ Cancel
+                        ✕ Remove
                       </button>
                     </>
                   )}
                   {booking.status === "APPROVED" && (
                     <button
-                      onClick={() => handleCancel(booking.bookingId)}
+                      onClick={() => handleCancel(booking.bookingId, "APPROVED")}
                       className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm"
                     >
                       ✕ Cancel Booking

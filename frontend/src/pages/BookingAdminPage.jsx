@@ -56,7 +56,7 @@ function BookingAdminPage() {
     if (!window.confirm("Approve this booking?")) return;
 
     try {
-      await API.post(`/api/bookings/${bookingId}/approve`);
+      await API.patch(`/api/bookings/${bookingId}/approve`);
       setSuccess("Booking approved successfully!");
       fetchAllBookings();
       setTimeout(() => setSuccess(""), 3000);
@@ -79,8 +79,8 @@ function BookingAdminPage() {
     }
 
     try {
-      await API.post(`/api/bookings/${rejectingBookingId}/reject`, {
-        reason: rejectReason,
+      await API.patch(`/api/bookings/${rejectingBookingId}/reject`, {
+        reason: rejectReason
       });
       setSuccess("Booking rejected successfully!");
       setShowRejectModal(false);
