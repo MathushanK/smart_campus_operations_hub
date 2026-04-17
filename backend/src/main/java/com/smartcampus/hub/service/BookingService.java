@@ -222,9 +222,10 @@ public class BookingService {
 
         // Check cancellation eligibility
         if (!isAdmin) {
-            // Users can only cancel PENDING bookings
-            if (!booking.getStatus().equals(Booking.BookingStatus.PENDING)) {
-                throw new IllegalArgumentException("You can only cancel pending bookings. Contact admin to cancel approved bookings");
+            // Users can cancel PENDING or APPROVED bookings
+            if (!booking.getStatus().equals(Booking.BookingStatus.PENDING) &&
+                !booking.getStatus().equals(Booking.BookingStatus.APPROVED)) {
+                throw new IllegalArgumentException("Cannot cancel " + booking.getStatus() + " bookings. Only pending and approved bookings can be cancelled");
             }
         } else {
             // Admins can cancel PENDING or APPROVED bookings

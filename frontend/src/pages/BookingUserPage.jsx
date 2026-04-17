@@ -658,13 +658,11 @@ function BookingUserPage() {
                       onClick={() => handleCancel(booking.bookingId)}
                       className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm"
                     >
-                      ✕ Cancel
+                      ✕ Cancel Booking
                     </button>
                   )}
                   {(booking.status === "REJECTED" || booking.status === "CANCELLED") && (
-                    <span className="text-gray-400 text-sm">
-                      No actions available
-                    </span>
+                    <span className="text-gray-400 text-sm">No actions available</span>
                   )}
                 </div>
               </div>

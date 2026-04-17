@@ -1,7 +1,6 @@
 package com.smartcampus.hub.controller;
 
 import com.smartcampus.hub.dto.BookingDTO;
-import com.smartcampus.hub.model.Role;
 import com.smartcampus.hub.model.User;
 import com.smartcampus.hub.repository.UserRepository;
 import com.smartcampus.hub.service.BookingService;
