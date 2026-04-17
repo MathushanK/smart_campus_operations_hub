@@ -5,6 +5,8 @@ import AdminDashboard from "../pages/AdminDashbord.jsx";
 import UserDashboard from "../pages/UserDashboard.jsx";
 import TechnicianDashboard from "../pages/TechnicianDashboard.jsx";
 import NotificationsPage from "../pages/NotificationsPage.jsx";
+import BookingUserPage from "../pages/BookingUserPage.jsx";
+import BookingAdminPage from "../pages/BookingAdminPage.jsx";
 import { useAuth } from "../context/AuthContext";
 import { getDashboardPath } from "../utils/auth";
 
@@ -22,6 +24,8 @@ function AppRoutes() {
       <Route path="/user/dashboard" element={<ProtectedRoute allowedRoles={["user"]}><UserDashboard /></ProtectedRoute>} />
       <Route path="/technician/dashboard" element={<ProtectedRoute allowedRoles={["technician"]}><TechnicianDashboard /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+      <Route path="/user/bookings" element={<ProtectedRoute allowedRoles={["user"]}><BookingUserPage /></ProtectedRoute>} />
+      <Route path="/admin/bookings" element={<ProtectedRoute allowedRoles={["admin"]}><BookingAdminPage /></ProtectedRoute>} />
     </Routes>
   );
 }
