@@ -77,18 +77,22 @@ function BookingUserPage() {
   };
 
   // Check for conflicts in real-time
-  const checkConflicts = async (resourceId, date, startTime, endTime) => {
+  const checkConflicts = async (resourceId, date, startTime, endTime, excludeBookingId = null) => {
     if (!resourceId || !date || !startTime || !endTime) return;
 
     try {
-      const response = await API.get("/api/bookings/check-conflicts", {
-        params: {
-          resourceId,
-          date,
-          startTime,
-          endTime,
-        },
-      });
+      const params = {
+        resourceId,
+        date,
+        startTime,
+        endTime,
+      };
+      
+      if (excludeBookingId) {
+        params.excludeBookingId = excludeBookingId;
+      }
+      
+      const response = await API.get("/api/bookings/check-conflicts", { params });
       setConflictCheck(response.data);
     } catch (err) {
       console.error("Error checking conflicts:", err);
@@ -110,7 +114,8 @@ function BookingUserPage() {
         formData.resourceId,
         formData.date,
         formData.startTime,
-        value
+        value,
+        editing
       );
     }
   };
@@ -407,17 +412,9 @@ function BookingUserPage() {
             </div>
 
             {/* Conflict Check */}
-            {conflictCheck && (
-              <div
-                className={`p-3 rounded-lg ${
-                  conflictCheck.hasConflict
-                    ? "bg-red-100 border border-red-400 text-red-700"
-                    : "bg-green-100 border border-green-400 text-green-700"
-                }`}
-              >
-                {conflictCheck.hasConflict
-                  ? `⚠️ ${conflictCheck.message}`
-                  : `✓ ${conflictCheck.message}`}
+            {conflictCheck && conflictCheck.hasConflict && (
+              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                {`⚠️ ${conflictCheck.message}`}
               </div>
             )}
             {formErrors.time && (
@@ -476,11 +473,7 @@ function BookingUserPage() {
                 )}
               </div>
             )}
-            {selectedResource?.capacity === null && (
-              <p className="text-sm text-gray-500">
-                ℹ️ This resource does not support capacity/attendees tracking
-              </p>
-            )}
+          
 
             {/* Buttons */}
             <div className="flex gap-3 pt-4">
@@ -573,7 +566,7 @@ function BookingUserPage() {
           <div className="p-6 text-center text-gray-400">No bookings found</div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {bookings.map((booking) => (
+            {[...bookings].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((booking) => (
               <div
                 key={booking.bookingId}
                 className="px-6 py-4 hover:bg-gray-50 transition"
@@ -661,9 +654,7 @@ function BookingUserPage() {
                       ✕ Cancel Booking
                     </button>
                   )}
-                  {(booking.status === "REJECTED" || booking.status === "CANCELLED") && (
-                    <span className="text-gray-400 text-sm">No actions available</span>
-                  )}
+                  
                 </div>
               </div>
             ))}

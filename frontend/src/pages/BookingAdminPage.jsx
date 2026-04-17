@@ -33,7 +33,16 @@ function BookingAdminPage() {
       if (statusFilter) url += `&status=${statusFilter}`;
 
       const response = await API.get(url);
-      setBookings(response.data.content || response.data || []);
+      const bookingsData = response.data.content || response.data || [];
+      
+      // Sort bookings by creation date (most recent first)
+      const sortedBookings = bookingsData.sort((a, b) => {
+        const dateA = new Date(a.createdDate || a.createdAt || 0);
+        const dateB = new Date(b.createdDate || b.createdAt || 0);
+        return dateB - dateA;
+      });
+      
+      setBookings(sortedBookings);
       setError("");
     } catch (err) {
       setError("Failed to load bookings");
@@ -227,7 +236,7 @@ function BookingAdminPage() {
               className="w-full p-3 border border-gray-300 rounded-lg"
             >
               <option value="">All Statuses</option>
-              <option value="PENDING">Pending (Action Needed)</option>
+              <option value="PENDING">Pending</option>
               <option value="APPROVED">Approved</option>
               <option value="REJECTED">Rejected</option>
               <option value="CANCELLED">Cancelled</option>

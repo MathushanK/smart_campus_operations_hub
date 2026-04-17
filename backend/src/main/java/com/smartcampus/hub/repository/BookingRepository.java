@@ -50,6 +50,20 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
             @Param("endTime") LocalTime endTime
     );
 
+    // Find conflicting bookings excluding a specific booking (for editing)
+    @Query("SELECT b FROM Booking b WHERE b.resource.resourceId = :resourceId " +
+           "AND b.date = :date " +
+           "AND b.status IN ('PENDING', 'APPROVED') " +
+           "AND (b.startTime < :endTime AND b.endTime > :startTime) " +
+           "AND b.bookingId != :excludeBookingId")
+    List<Booking> findConflictingBookings(
+            @Param("resourceId") Integer resourceId,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime,
+            @Param("excludeBookingId") Integer excludeBookingId
+    );
+
     // Find all bookings by status with pagination (for admin)
     Page<Booking> findByStatus(Booking.BookingStatus status, Pageable pageable);
 

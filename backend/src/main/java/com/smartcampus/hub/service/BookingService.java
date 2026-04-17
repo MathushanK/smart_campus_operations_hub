@@ -344,18 +344,28 @@ public class BookingService {
      */
     public ConflictCheckResponse checkForConflicts(Integer resourceId, LocalDate date, 
                                                     LocalTime startTime, LocalTime endTime) {
-        List<Booking> conflicts = bookingRepository.findConflictingBookings(resourceId, date, startTime, endTime);
+        return checkForConflicts(resourceId, date, startTime, endTime, null);
+    }
+
+    public ConflictCheckResponse checkForConflicts(Integer resourceId, LocalDate date, 
+                                                    LocalTime startTime, LocalTime endTime, Integer excludeBookingId) {
+        List<Booking> conflicts;
+        
+        if (excludeBookingId != null) {
+            conflicts = bookingRepository.findConflictingBookings(resourceId, date, startTime, endTime, excludeBookingId);
+        } else {
+            conflicts = bookingRepository.findConflictingBookings(resourceId, date, startTime, endTime);
+        }
 
         if (conflicts.isEmpty()) {
             return ConflictCheckResponse.builder()
                     .hasConflict(false)
-                    .message("Time slot is available")
                     .conflictCount(0)
                     .build();
         } else {
             return ConflictCheckResponse.builder()
                     .hasConflict(true)
-                    .message("Time slot is already booked by another user")
+                    .message("Time slot is already booked. Please choose a different time")
                     .conflictCount(conflicts.size())
                     .conflicts(conflicts.stream().map(this::convertToDTO).collect(Collectors.toList()))
                     .build();
