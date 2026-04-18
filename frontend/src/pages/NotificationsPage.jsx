@@ -8,6 +8,11 @@ function NotificationsPage() {
   const { user } = useAuth();
   const [filterType, setFilterType] = useState("all"); // all, unread, read
 
+  const formatNotificationDateTime = (createdAt) => {
+    if (!createdAt) return "Just now";
+    return new Date(createdAt).toLocaleString();
+  };
+
   const filteredNotifications = notifications.filter(n => {
     if (filterType === "unread") return !n.read;
     if (filterType === "read") return n.read;
@@ -30,7 +35,7 @@ function NotificationsPage() {
       <div className="bg-linear-to-r from-blue-600 to-blue-400 rounded-2xl p-8 mb-8 shadow-lg text-white">
         <h1 className="text-4xl font-bold mb-2">📢 Notifications</h1>
         <p className="text-blue-100">
-          Notifications for user ID {user?.userId ?? user?.id ?? "-"} and role ID {user?.roleId ?? "-"}.
+          Notifications for {user?.name}.
         </p>
       </div>
 
@@ -177,7 +182,7 @@ function NotificationsPage() {
                       </span>
                     </div>
                     <p className="text-gray-500 text-xs mt-3">
-                      {n.timestamp ? new Date(n.timestamp).toLocaleString() : "Just now"}
+                      {formatNotificationDateTime(n.createdAt)}
                     </p>
                   </div>
 
