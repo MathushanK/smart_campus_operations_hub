@@ -13,7 +13,6 @@ function BookingAdminPage() {
   // Search & Filter state
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(0);
 
   // Rejection modal
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -23,12 +22,12 @@ function BookingAdminPage() {
   // Load bookings on mount and filter changes
   useEffect(() => {
     fetchAllBookings();
-  }, [keyword, statusFilter, currentPage]);
+  }, [keyword, statusFilter]);
 
   const fetchAllBookings = async () => {
     setLoading(true);
     try {
-      let url = `/api/bookings/admin/all?page=${currentPage}&size=10`;
+      let url = `/api/bookings/admin/all?size=1000`;
       if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
       if (statusFilter) url += `&status=${statusFilter}`;
 
@@ -217,7 +216,6 @@ function BookingAdminPage() {
               value={keyword}
               onChange={(e) => {
                 setKeyword(e.target.value);
-                setCurrentPage(0);
               }}
               placeholder="Search bookings..."
               className="w-full p-3 border border-gray-300 rounded-lg"
@@ -231,7 +229,6 @@ function BookingAdminPage() {
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
-                setCurrentPage(0);
               }}
               className="w-full p-3 border border-gray-300 rounded-lg"
             >
@@ -247,7 +244,6 @@ function BookingAdminPage() {
               onClick={() => {
                 setKeyword("");
                 setStatusFilter("");
-                setCurrentPage(0);
               }}
               className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition"
             >
@@ -268,7 +264,7 @@ function BookingAdminPage() {
         ) : bookings.length === 0 ? (
           <div className="p-6 text-center text-gray-400">No bookings found</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[600px]">
             <table className="w-full">
               <thead className="bg-gray-100 border-b border-gray-200">
                 <tr>

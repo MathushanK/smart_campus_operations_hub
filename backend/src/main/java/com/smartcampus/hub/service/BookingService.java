@@ -128,7 +128,7 @@ public class BookingService {
 
         if (!conflicts.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Resource is already booked during this time slot. Available slots may be limited. Please choose a different time"
+                    "Time slot is already booked. Please choose a different time"
             );
         }
     }

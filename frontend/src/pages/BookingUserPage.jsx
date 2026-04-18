@@ -67,12 +67,32 @@ function BookingUserPage() {
     }
   };
 
+  // Format time to HH:MM:SS if it's in HH:MM format
+  const formatTimeToBackend = (time) => {
+    if (!time) return "";
+    if (time.length === 5) {
+      return `${time}:00`; // HH:MM -> HH:MM:SS
+    }
+    return time; // Already HH:MM:SS
+  };
+
+  // Format time from backend (HH:MM:SS) to input format (HH:MM)
+  const formatTimeForInput = (time) => {
+    if (!time) return "";
+    return time.substring(0, 5); // Take only HH:MM
+  };
+
   // Handle resource selection
   const handleResourceChange = (e) => {
     const resourceId = parseInt(e.target.value);
     const resource = resources.find((r) => r.resourceId === resourceId);
     setSelectedResource(resource);
     setFormData({ ...formData, resourceId });
+    // Clear time and conflict errors when resource changes
+    const newFormErrors = { ...formErrors };
+    delete newFormErrors.time;
+    delete newFormErrors.conflict;
+    setFormErrors(newFormErrors);
     setConflictCheck(null);
   };
 
@@ -84,8 +104,8 @@ function BookingUserPage() {
       const params = {
         resourceId,
         date,
-        startTime,
-        endTime,
+        startTime: formatTimeToBackend(startTime),
+        endTime: formatTimeToBackend(endTime),
       };
       
       if (excludeBookingId) {
@@ -99,22 +119,53 @@ function BookingUserPage() {
     }
   };
 
-  // Handle time change to trigger real-time conflict check
+  // Handle time change to trigger real-time conflict check and clear errors
   const handleTimeChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
+    
+    // Clear time-related errors
+    const newFormErrors = { ...formErrors };
+    delete newFormErrors.startTime;
+    delete newFormErrors.endTime;
+    delete newFormErrors.time;
+    delete newFormErrors.conflict;
+    setFormErrors(newFormErrors);
+    setConflictCheck(null);
+
+    // Validate availability window in real-time
+    if (selectedResource && formData.date) {
+      const newStartTime = field === "startTime" ? value : formData.startTime;
+      const newEndTime = field === "endTime" ? value : formData.endTime;
+      
+      if (newStartTime && newEndTime) {
+        const resStart = selectedResource.availabilityStart?.substring(0, 5);
+        const resEnd = selectedResource.availabilityEnd?.substring(0, 5);
+
+        // Check if times are within availability window
+        if (newStartTime < resStart || newEndTime > resEnd) {
+          const availabilityError = `Booking must be within availability window (${resStart} - ${resEnd}).`;
+          setFormErrors((prev) => ({ ...prev, time: availabilityError }));
+          return; // Don't check conflicts if outside availability window
+        }
+      }
+    }
 
     // Trigger conflict check if all required fields are filled
     if (
       formData.resourceId &&
       formData.date &&
-      field === "endTime" &&
-      formData.startTime
+      formData.startTime &&
+      formData.endTime
     ) {
+      // Check conflicts with the updated time
+      const newStartTime = field === "startTime" ? value : formData.startTime;
+      const newEndTime = field === "endTime" ? value : formData.endTime;
+      
       checkConflicts(
         formData.resourceId,
         formData.date,
-        formData.startTime,
-        value,
+        newStartTime,
+        newEndTime,
         editing
       );
     }
@@ -178,8 +229,8 @@ function BookingUserPage() {
       const payload = {
         resourceId: parseInt(formData.resourceId),
         date: formData.date,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
+        startTime: formatTimeToBackend(formData.startTime),
+        endTime: formatTimeToBackend(formData.endTime),
         purpose: formData.purpose,
         attendees: formData.attendees ? parseInt(formData.attendees) : null,
       };
@@ -214,7 +265,14 @@ function BookingUserPage() {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Failed to save booking";
-      setError(errorMsg);
+      
+      // Check if it's a conflict error and display it below the times
+      if (errorMsg.includes("Time slot is already booked")) {
+        setFormErrors({ ...formErrors, conflict: errorMsg });
+        setError("");
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -230,8 +288,8 @@ function BookingUserPage() {
     setFormData({
       resourceId: booking.resourceId,
       date: booking.date,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
+      startTime: formatTimeForInput(booking.startTime),
+      endTime: formatTimeForInput(booking.endTime),
       purpose: booking.purpose,
       attendees: booking.attendees || "",
     });
@@ -379,7 +437,15 @@ function BookingUserPage() {
               <input
                 type="date"
                 value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, date: e.target.value });
+                  // Clear time-related errors when date changes
+                  const newFormErrors = { ...formErrors };
+                  delete newFormErrors.time;
+                  delete newFormErrors.conflict;
+                  setFormErrors(newFormErrors);
+                  setConflictCheck(null);
+                }}
                 min={new Date().toISOString().split("T")[0]}
                 className={`w-full p-3 border rounded-lg ${
                   formErrors.date ? "border-red-500" : "border-gray-300"
@@ -399,9 +465,7 @@ function BookingUserPage() {
                 <input
                   type="time"
                   value={formData.startTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startTime: e.target.value })
-                  }
+                  onChange={(e) => handleTimeChange("startTime", e.target.value)}
                   className={`w-full p-3 border rounded-lg ${
                     formErrors.startTime ? "border-red-500" : "border-gray-300"
                   }`}
