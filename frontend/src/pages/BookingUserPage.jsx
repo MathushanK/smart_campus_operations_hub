@@ -571,6 +571,15 @@ function BookingUserPage() {
                 onClick={() => {
                   setShowForm(false);
                   setEditing(null);
+                  setFormData({
+                    resourceId: "",
+                    date: "",
+                    startTime: "",
+                    endTime: "",
+                    purpose: "",
+                    attendees: "",
+                  });
+                  setSelectedResource(null);
                   setFormErrors({});
                   setConflictCheck(null);
                 }}
