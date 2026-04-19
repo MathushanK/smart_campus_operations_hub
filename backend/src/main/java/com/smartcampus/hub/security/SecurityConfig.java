@@ -4,7 +4,6 @@ import org.springframework.context.annotation.*;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.*;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
@@ -38,6 +37,8 @@ public class SecurityConfig {
                 .requestMatchers("/resource-types/**").permitAll()
                 .requestMatchers("/resource-types").permitAll()
 
+                // ✅ Member 3 endpoints
+                .requestMatchers("/tickets/**").permitAll()
                 // 👑 ADMIN
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
