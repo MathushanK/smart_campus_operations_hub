@@ -2,6 +2,7 @@ package com.smartcampus.hub.service;
 
 import com.smartcampus.hub.dto.BookingDTO;
 import com.smartcampus.hub.model.Booking;
+import com.smartcampus.hub.model.Notification;
 import com.smartcampus.hub.model.Resource;
 import com.smartcampus.hub.model.User;
 import com.smartcampus.hub.repository.BookingRepository;
@@ -26,6 +27,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final ResourceRepository resourceRepository;
+    private final NotificationService notificationService;
 
     // ============ VALIDATION METHODS ============
 
@@ -169,6 +171,8 @@ public class BookingService {
                 .build();
 
         Booking savedBooking = bookingRepository.save(booking);
+        notifyAdminsForPendingBookingAction(savedBooking, "CREATED");
+        notifyBookingUser(savedBooking, "CREATED");
         return convertToDTO(savedBooking);
     }
 
@@ -208,6 +212,8 @@ public class BookingService {
         booking.setUpdatedAt(LocalDateTime.now());
 
         Booking updatedBooking = bookingRepository.save(booking);
+        notifyAdminsForPendingBookingAction(updatedBooking, "UPDATED");
+        notifyBookingUser(updatedBooking, "UPDATED");
         return convertToDTO(updatedBooking);
     }
 
@@ -262,6 +268,7 @@ public class BookingService {
         booking.setUpdatedAt(LocalDateTime.now());
 
         Booking updatedBooking = bookingRepository.save(booking);
+        notifyBookingUser(updatedBooking, "APPROVED");
         return convertToDTO(updatedBooking);
     }
 
@@ -282,6 +289,7 @@ public class BookingService {
         booking.setUpdatedAt(LocalDateTime.now());
 
         Booking updatedBooking = bookingRepository.save(booking);
+        notifyBookingUser(updatedBooking, "REJECTED");
         return convertToDTO(updatedBooking);
     }
 
@@ -302,6 +310,9 @@ public class BookingService {
         if (!booking.getStatus().equals(Booking.BookingStatus.PENDING)) {
             throw new IllegalArgumentException("Only pending bookings can be deleted. Current status: " + booking.getStatus());
         }
+
+        notifyAdminsForPendingBookingAction(booking, "DELETED");
+        notifyBookingUser(booking, "DELETED");
 
         // Delete the booking from database
         bookingRepository.deleteById(bookingId);
@@ -399,6 +410,118 @@ public class BookingService {
     }
 
     // ============ HELPER METHODS ============
+
+    private void notifyAdminsForPendingBookingAction(Booking booking, String action) {
+        String message = buildPendingBookingActionMessage(booking, action);
+
+        for (User admin : userRepository.findAllAdmins()) {
+            Notification notification = new Notification();
+            notification.setUserId(admin.getId());
+            notification.setType("BOOKING_" + action);
+            notification.setMessage(message);
+            notificationService.createNotification(notification);
+        }
+    }
+
+    private void notifyBookingUser(Booking booking, String action) {
+        Notification notification = new Notification();
+        notification.setUserId(booking.getUser().getId());
+        notification.setType("BOOKING_" + action);
+        notification.setMessage(buildBookingUserMessage(booking, action));
+        notificationService.createNotification(notification);
+    }
+
+    private String buildPendingBookingActionMessage(Booking booking, String action) {
+        String userName = booking.getUser().getName();
+        String resourceName = booking.getResource().getName();
+
+        return switch (action) {
+            case "CREATED" -> String.format(
+                    "%s created a new booking for %s on %s from %s to %s.",
+                    userName,
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+            case "UPDATED" -> String.format(
+                    "%s updated a pending booking for %s on %s from %s to %s.",
+                    userName,
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+            case "DELETED" -> String.format(
+                    "%s deleted a pending booking for %s on %s from %s to %s.",
+                    userName,
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+            default -> String.format(
+                    "%s performed a booking action for %s on %s from %s to %s.",
+                    userName,
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+        };
+    }
+
+    private String buildBookingUserMessage(Booking booking, String action) {
+        String resourceName = booking.getResource().getName();
+
+        return switch (action) {
+            case "CREATED" -> String.format(
+                    "Your booking for %s on %s from %s to %s was created successfully and is pending approval.",
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+            case "UPDATED" -> String.format(
+                    "Your pending booking for %s on %s from %s to %s was updated successfully.",
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+            case "DELETED" -> String.format(
+                    "Your pending booking for %s on %s from %s to %s was deleted successfully.",
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+            case "APPROVED" -> String.format(
+                    "Your booking for %s on %s from %s to %s was approved.",
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+            case "REJECTED" -> String.format(
+                    "Your booking for %s on %s from %s to %s was rejected%s.",
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime(),
+                    booking.getAdminReason() != null && !booking.getAdminReason().isBlank()
+                            ? " Reason: " + booking.getAdminReason()
+                            : ""
+            );
+            default -> String.format(
+                    "Your booking for %s on %s from %s to %s was updated.",
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+        };
+    }
 
     /**
      * Convert Booking entity to DTO

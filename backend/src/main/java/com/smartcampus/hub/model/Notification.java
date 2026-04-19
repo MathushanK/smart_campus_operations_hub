@@ -17,11 +17,17 @@ public class Notification {
     private String message;
     private String type;
     private boolean isRead;
+
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     public Notification() {
-        this.createdAt = LocalDateTime.now();
         this.isRead = false;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
     }
 
     // Getters & Setters

@@ -4,6 +4,7 @@ import com.smartcampus.hub.model.Notification;
 import com.smartcampus.hub.repository.NotificationRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -16,6 +17,7 @@ public class NotificationService {
     }
 
     public Notification createNotification(Notification notification) {
+        notification.setCreatedAt(LocalDateTime.now());
         return repository.save(notification);
     }
 
