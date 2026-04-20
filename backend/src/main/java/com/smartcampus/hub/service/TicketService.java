@@ -81,5 +81,9 @@ public class TicketService {
     public Ticket getTicketById(Long id) {
     return ticketRepo.findById(id)
             .orElseThrow(() -> new RuntimeException("Ticket not found"));
+    }
+
+    public List<TicketImage> getImagesByTicketId(Long ticketId) {
+    return imageRepo.findByTicketId(ticketId);
 }
 }
