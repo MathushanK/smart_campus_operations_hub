@@ -1,21 +1,19 @@
 import Layout from "../components/Layout";
-import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
-import API from "../api/api";
+import { getAllTickets, updateTicketStatus } from "../api/ticketApi";
 
 function TechnicianDashboard() {
-  const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Fetch all tickets (technician view)
+  // ✅ BEST PRACTICE: define inside useEffect
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        const res = await API.get("/tickets"); // 🔥 make sure backend supports this
+        const res = await getAllTickets();
         setTickets(res.data || []);
       } catch (err) {
-        console.error("Error fetching tickets", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -24,11 +22,12 @@ function TechnicianDashboard() {
     fetchTickets();
   }, []);
 
-  // ✅ Update ticket status
+  // ✅ Update status + refresh UI
   const updateStatus = async (id, status) => {
     try {
-      await API.put(`/tickets/${id}/status`, { status });
+      await updateTicketStatus(id, status);
 
+      // update UI without full reload (better UX)
       setTickets(prev =>
         prev.map(t =>
           t.id === id ? { ...t, status } : t
@@ -48,96 +47,90 @@ function TechnicianDashboard() {
     <Layout>
 
       {/* HEADER */}
-      <div className="bg-linear-to-r from-orange-600 to-orange-400 rounded-2xl p-8 mb-8 shadow-lg text-white">
-        <h1 className="text-4xl font-bold mb-2">Technician Dashboard 🔧</h1>
-        <p className="text-orange-100">
-          Manage and resolve campus incident tickets efficiently.
+      <div className="bg-orange-500 text-white p-6 rounded-xl mb-6 shadow">
+        <h1 className="text-3xl font-bold">Technician Dashboard 🔧</h1>
+        <p className="text-sm text-orange-100 mt-1">
+          Manage and resolve support tickets
         </p>
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
 
-        <div className="bg-white p-6 rounded-xl shadow border-l-4 border-red-500">
-          <h2 className="text-sm text-gray-600">Open Tickets</h2>
-          <p className="text-3xl font-bold text-red-600 mt-2">{openCount}</p>
+        <div className="bg-white p-4 shadow rounded border-l-4 border-red-500">
+          <p className="text-sm text-gray-500">Open</p>
+          <h2 className="text-2xl font-bold text-red-600">{openCount}</h2>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow border-l-4 border-yellow-500">
-          <h2 className="text-sm text-gray-600">In Progress</h2>
-          <p className="text-3xl font-bold text-yellow-600 mt-2">{progressCount}</p>
+        <div className="bg-white p-4 shadow rounded border-l-4 border-yellow-500">
+          <p className="text-sm text-gray-500">In Progress</p>
+          <h2 className="text-2xl font-bold text-yellow-600">{progressCount}</h2>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
-          <h2 className="text-sm text-gray-600">Resolved</h2>
-          <p className="text-3xl font-bold text-green-600 mt-2">{resolvedCount}</p>
+        <div className="bg-white p-4 shadow rounded border-l-4 border-green-500">
+          <p className="text-sm text-gray-500">Resolved</p>
+          <h2 className="text-2xl font-bold text-green-600">{resolvedCount}</h2>
         </div>
 
       </div>
 
       {/* TICKET LIST */}
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+      {loading ? (
+        <p className="text-center text-gray-500">Loading tickets...</p>
+      ) : tickets.length === 0 ? (
+        <p className="text-center text-gray-500">No tickets found</p>
+      ) : (
+        <div className="space-y-4">
 
-        <div className="bg-orange-500 px-6 py-4">
-          <h2 className="text-white text-xl font-bold">🎫 Ticket Management</h2>
-        </div>
+          {tickets.map(t => (
+            <div
+              key={t.id}
+              className="p-5 border rounded-xl bg-gray-50 shadow-sm"
+            >
 
-        <div className="p-6">
+              {/* TITLE + CATEGORY */}
+              <h3 className="font-bold text-lg">{t.title}</h3>
+              <p className="text-sm text-gray-500">{t.category}</p>
 
-          {loading ? (
-            <p className="text-center text-gray-500">Loading tickets...</p>
-          ) : tickets.length === 0 ? (
-            <p className="text-center text-gray-500">No tickets found</p>
-          ) : (
-            <div className="space-y-4">
+              {/* DESCRIPTION */}
+              <p className="mt-2 text-gray-700">{t.description}</p>
 
-              {tickets.map(ticket => (
-                <div
-                  key={ticket.id}
-                  className="border p-4 rounded-lg shadow-sm bg-gray-50"
+              {/* STATUS */}
+              <p className="mt-2 text-sm">
+                Status:{" "}
+                <span className={`font-semibold
+                  ${t.status === "OPEN" ? "text-red-600" : ""}
+                  ${t.status === "IN_PROGRESS" ? "text-yellow-600" : ""}
+                  ${t.status === "RESOLVED" ? "text-green-600" : ""}
+                `}>
+                  {t.status}
+                </span>
+              </p>
+
+              {/* ACTION BUTTONS */}
+              <div className="flex gap-2 mt-4">
+
+                <button
+                  onClick={() => updateStatus(t.id, "IN_PROGRESS")}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1 rounded"
                 >
-                  <div className="flex justify-between items-center">
+                  Start
+                </button>
 
-                    <div>
-                      <h3 className="font-bold text-lg">
-                        {ticket.title}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {ticket.description}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Status: {ticket.status}
-                      </p>
-                    </div>
+                <button
+                  onClick={() => updateStatus(t.id, "RESOLVED")}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded"
+                >
+                  Resolve
+                </button>
 
-                    {/* ACTION BUTTONS */}
-                    <div className="flex gap-2">
-
-                      <button
-                        onClick={() => updateStatus(ticket.id, "IN_PROGRESS")}
-                        className="px-3 py-1 bg-yellow-500 text-white rounded text-sm"
-                      >
-                        Start
-                      </button>
-
-                      <button
-                        onClick={() => updateStatus(ticket.id, "RESOLVED")}
-                        className="px-3 py-1 bg-green-600 text-white rounded text-sm"
-                      >
-                        Resolve
-                      </button>
-
-                    </div>
-
-                  </div>
-                </div>
-              ))}
+              </div>
 
             </div>
-          )}
+          ))}
 
         </div>
-      </div>
+      )}
 
     </Layout>
   );

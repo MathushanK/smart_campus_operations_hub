@@ -9,17 +9,17 @@ function TicketList() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const res = await getMyTickets();
+        setTickets(res.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
     fetchTickets();
   }, []);
-
-  const fetchTickets = async () => {
-    try {
-      const res = await getMyTickets();
-      setTickets(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   return (
     <Layout>

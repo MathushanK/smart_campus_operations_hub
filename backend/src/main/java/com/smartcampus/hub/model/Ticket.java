@@ -1,6 +1,5 @@
 package com.smartcampus.hub.model;
 
-
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,8 +18,10 @@ public class Ticket {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "resource_id")
-    private Long resourceId;
+    // ❌ REMOVE this (not used)
+    // private Long resourceId;
+
+    private String title; // ✅ NEW FIELD
 
     private String category;
     private String description;

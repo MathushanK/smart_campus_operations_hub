@@ -73,4 +73,13 @@ public class TicketService {
         img.setImageUrl(url);
         return imageRepo.save(img);
     }
+
+    public List<Ticket> getAllTickets() {
+    return ticketRepo.findAll();
+    }
+
+    public Ticket getTicketById(Long id) {
+    return ticketRepo.findById(id)
+            .orElseThrow(() -> new RuntimeException("Ticket not found"));
+}
 }

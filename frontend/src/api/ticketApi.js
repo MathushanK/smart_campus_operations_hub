@@ -3,15 +3,15 @@ import API from "./api";
 // Create ticket
 export const createTicket = (data) => API.post("/tickets", data);
 
-// Get user tickets
+// Get my tickets
 export const getMyTickets = () => API.get("/tickets/my");
+
+// Get all tickets (technician)
+export const getAllTickets = () => API.get("/tickets");
 
 // Get single ticket
 export const getTicketById = (id) => API.get(`/tickets/${id}`);
 
-// Update ticket (technician)
-export const updateTicket = (id, data) => API.put(`/tickets/${id}`, data);
-
-// Upload attachment
-export const uploadAttachment = (id, formData) =>
-  API.post(`/tickets/${id}/attachments`, formData);
+// Update status (FIXED)
+export const updateTicketStatus = (id, status) =>
+  API.put(`/tickets/${id}/status?status=${status}`);

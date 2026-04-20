@@ -2,8 +2,13 @@ package com.smartcampus.hub.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
 import com.smartcampus.hub.service.TicketService;
 import com.smartcampus.hub.model.*;
+import com.smartcampus.hub.repository.UserRepository;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.List;
 
@@ -15,16 +20,41 @@ public class TicketController {
 
     private final TicketService service;
 
-    // ✅ CREATE TICKET
+    // ✅ ADD THIS (VERY IMPORTANT)
+    private final UserRepository userRepository;
+
+    // ✅ CREATE TICKET (AUTO USER)
     @PostMapping
-    public Ticket create(@RequestBody Ticket ticket) {
+    public Ticket create(@RequestBody Ticket ticket, Authentication authentication) {
+
+        OAuth2User oauthUser = (OAuth2User) authentication.getPrincipal();
+        String email = oauthUser.getAttribute("email");
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        ticket.setUserId(user.getId());
+
         return service.createTicket(ticket);
     }
 
-    // ✅ GET USER TICKETS
-    @GetMapping("/user/{id}")
-    public List<Ticket> userTickets(@PathVariable Long id) {
-        return service.getUserTickets(id);
+    // ✅ GET MY TICKETS
+    @GetMapping("/my")
+    public List<Ticket> myTickets(Authentication authentication) {
+
+        OAuth2User oauthUser = (OAuth2User) authentication.getPrincipal();
+        String email = oauthUser.getAttribute("email");
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return service.getUserTickets(user.getId());
+    }
+
+    // ✅ GET ALL TICKETS (for technician)
+    @GetMapping
+    public List<Ticket> allTickets() {
+        return service.getAllTickets();
     }
 
     // ✅ UPDATE STATUS
@@ -50,17 +80,9 @@ public class TicketController {
         return service.assign(id, techId);
     }
 
-    // ✅ GET TECHNICIAN TICKETS
-    @GetMapping("/technician/{id}")
-    public List<TicketAssignment> techTickets(@PathVariable Long id) {
-        return service.getTechTickets(id);
-    }
-
-    // ✅ ADD IMAGE
-    @PostMapping("/{id}/image")
-    public TicketImage addImage(
-            @PathVariable Long id,
-            @RequestParam String url) {
-        return service.addImage(id, url);
+    // ✅ GET SINGLE TICKET
+    @GetMapping("/{id}")
+    public Ticket getById(@PathVariable Long id) {
+        return service.getTicketById(id);
     }
 }
