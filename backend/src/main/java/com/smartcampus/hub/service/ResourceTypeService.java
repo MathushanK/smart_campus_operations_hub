@@ -3,7 +3,6 @@ package com.smartcampus.hub.service;
 import com.smartcampus.hub.dto.ResourceTypeDTO;
 import com.smartcampus.hub.model.Notification;
 import com.smartcampus.hub.model.ResourceType;
-import com.smartcampus.hub.repository.ResourceRepository;
 import com.smartcampus.hub.model.User;
 import com.smartcampus.hub.repository.ResourceTypeRepository;
 import com.smartcampus.hub.repository.UserRepository;
@@ -19,7 +18,6 @@ import java.util.stream.Collectors;
 public class ResourceTypeService {
 
     private final ResourceTypeRepository repo;
-    private final ResourceRepository resourceRepo;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -51,10 +49,6 @@ public class ResourceTypeService {
 
     @Transactional
     public void delete(Integer id) {
-        // Cascade delete: first delete all resources of this type
-        resourceRepo.deleteAll(resourceRepo.findByResourceType_TypeId(id));
-        // Then delete the resource type
-        repo.deleteById(id);
         ResourceType resourceType = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Resource type not found"));
         repo.delete(resourceType);
