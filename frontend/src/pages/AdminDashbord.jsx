@@ -2,109 +2,116 @@ import Layout from "../components/Layout";
 import { useNotifications } from "../hooks/useNotifications";
 import { useAuth } from "../context/AuthContext";
 import { useState, useEffect } from "react";
-import { FiUsers, FiBox, FiCalendar, FiTrendingUp, FiActivity, FiArrowUp, FiArrowDown, FiCheckCircle, FiClock, FiAlertCircle, FiPlus, FiBarChart2, FiCompass, FiTool, FiZap } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import {
+  FiUsers, FiBox, FiCalendar, FiTrendingUp, FiActivity,
+  FiArrowUp, FiArrowDown, FiCheckCircle, FiClock, FiAlertCircle,
+  FiPlus, FiBarChart2, FiCompass, FiTool, FiZap, FiFilter
+} from "react-icons/fi";
 import API from "../api/api";
 
 function AdminDashboard() {
+  const navigate = useNavigate();
   const { notifications, loading: notifLoading } = useNotifications();
   const { user } = useAuth();
   const [stats, setStats] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedNotification, setSelectedNotification] = useState(null);
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Fetch real data from backend
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const [usersRes, resourcesRes, bookingsRes, resourceTypesRes] = await Promise.all([
+        const results = await Promise.allSettled([
           API.get("/api/users"),
           API.get("/resources"),
           API.get("/api/bookings/admin/all?size=1000"),
           API.get("/resource-types")
         ]);
 
-        const totalUsers = usersRes.data?.length || 0;
-        const totalResourcesData = resourcesRes.data || [];
-        const bookingsData = bookingsRes.data?.content || [];
-        const resourceTypes = resourceTypesRes.data?.length || 0;
-        
-        const pendingBookings = bookingsData.filter(b => b.status === "PENDING")?.length || 0;
-        const approvedBookings = bookingsData.filter(b => b.status === "APPROVED")?.length || 0;
-        const todayBookings = bookingsData.filter(b => {
-          const bookingDate = new Date(b.bookingDate).toDateString();
+        // Handle each result individually
+        const usersRes = results[0].status === 'fulfilled' ? results[0].value : null;
+        const resourcesRes = results[1].status === 'fulfilled' ? results[1].value : null;
+        const bookingsRes = results[2].status === 'fulfilled' ? results[2].value : null;
+        const resourceTypesRes = results[3].status === 'fulfilled' ? results[3].value : null;
+
+        // Log any failures for debugging
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.error(`API call ${index} failed:`, result.reason);
+          }
+        });
+
+        const totalUsers = usersRes?.data?.length || 0;
+        const totalResourcesData = resourcesRes?.data || [];
+
+        // BookingAdminPage shows the response is response.data.content || response.data
+        const bookingsData = bookingsRes?.data?.content || bookingsRes?.data || [];
+
+        // Sort by createdDate (same as BookingAdminPage)
+        const sortedBookings = bookingsData.sort((a, b) => {
+          const dateA = new Date(a.createdDate || a.createdAt || 0);
+          const dateB = new Date(b.createdDate || b.createdAt || 0);
+          return dateB - dateA;
+        });
+
+        const pendingBookings = sortedBookings.filter(b => b.status === "PENDING").length;
+        const activeResources = totalResourcesData.filter(r => r.status === "ACTIVE").length;
+        const maintenanceResources = totalResourcesData.filter(r => r.status === "MAINTENANCE").length;
+
+        // BookingAdminPage uses booking.date (not booking.bookingDate) for the date field
+        const todayBookings = sortedBookings.filter(b => {
+          const bookingDate = new Date(b.date).toDateString();
           const today = new Date().toDateString();
           return bookingDate === today;
-        })?.length || 0;
-        
-        const activeResources = totalResourcesData.filter(r => r.status === "ACTIVE")?.length || 0;
-        const maintenanceResources = totalResourcesData.filter(r => r.status === "MAINTENANCE")?.length || 0;
-        const outOfServiceResources = totalResourcesData.filter(r => r.status === "OUT_OF_SERVICE")?.length || 0;
+        }).length;
 
         setStats([
-          { 
-            label: "Total Users", 
-            value: totalUsers, 
-            change: "+12%", 
-            icon: FiUsers, 
-            color: "indigo", 
-            trend: "up",
+          {
+            label: "Total Users",
+            value: totalUsers,
+            icon: FiUsers,
+            color: "indigo",
             description: "Students + Staff + Technicians"
           },
-          { 
-            label: "Active Resources", 
-            value: activeResources, 
-            change: "+5%", 
-            icon: FiBox, 
-            color: "emerald", 
-            trend: "up",
+          {
+            label: "Active Resources",
+            value: activeResources,
+            icon: FiBox,
+            color: "emerald",
             description: "Currently available"
           },
-          { 
-            label: "Pending Bookings", 
-            value: pendingBookings, 
-            change: "-3%", 
-            icon: FiClock, 
-            color: "amber", 
-            trend: "down",
+          {
+            label: "Pending Bookings",
+            value: pendingBookings,
+            icon: FiClock,
+            color: "amber",
             description: "Awaiting approval"
           },
-          { 
-            label: "Today's Bookings", 
-            value: todayBookings, 
-            change: "On schedule", 
-            icon: FiCalendar, 
-            color: "blue", 
-            trend: "stable",
+          {
+            label: "Today's Bookings",
+            value: todayBookings,
+            icon: FiCalendar,
+            color: "blue",
             description: "Scheduled for today"
           },
-          { 
-            label: "Open Issues", 
-            value: maintenanceResources, 
-            change: "Attention needed", 
-            icon: FiAlertCircle, 
-            color: "rose", 
-            trend: "stable",
+          {
+            label: "Open Issues",
+            value: maintenanceResources,
+            change: "Attention needed",
+            icon: FiAlertCircle,
+            color: "rose",
             description: "Maintenance required"
-          },
-          { 
-            label: "System Health", 
-            value: "Healthy", 
-            change: "✓", 
-            icon: FiActivity, 
-            color: "green", 
-            trend: "up",
-            description: "All systems operational"
           },
         ]);
 
         setResources(totalResourcesData);
-        setBookings(bookingsData);
+        setBookings(sortedBookings);
       } catch (err) {
-        console.error("Error fetching stats:", err);
+        console.error("Error processing stats:", err);
         setStats([]);
       } finally {
         setLoading(false);
@@ -113,15 +120,6 @@ function AdminDashboard() {
 
     fetchStats();
   }, []);
-
-  const colorClasses = {
-    indigo: { bg: "bg-indigo-50", border: "border-indigo-200", icon: "text-indigo-600", badge: "bg-indigo-100 text-indigo-700" },
-    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600", badge: "bg-emerald-100 text-emerald-700" },
-    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600", badge: "bg-amber-100 text-amber-700" },
-    rose: { bg: "bg-rose-50", border: "border-rose-200", icon: "text-rose-600", badge: "bg-rose-100 text-rose-700" },
-    blue: { bg: "bg-blue-50", border: "border-blue-200", icon: "text-blue-600", badge: "bg-blue-100 text-blue-700" },
-    green: { bg: "bg-green-50", border: "border-green-200", icon: "text-green-600", badge: "bg-green-100 text-green-700" },
-  };
 
   const colorMap = {
     indigo: "text-indigo-600 bg-indigo-50",
@@ -132,91 +130,87 @@ function AdminDashboard() {
     green: "text-green-600 bg-green-50",
   };
 
-  // Calculate booking trends from real data (last 7 days)
+  // Calculate booking trends — shows last 7 days
   const calculateBookingTrends = () => {
-    const trends = [];
-    const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      date.setHours(0, 0, 0, 0);
-      
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-      
-      const count = bookings.filter(b => {
-        const bookingDate = new Date(b.bookingDate);
-        bookingDate.setHours(0, 0, 0, 0);
-        return bookingDate >= date && bookingDate < nextDate;
-      }).length;
-      
-      trends.push({
-        day: daysOfWeek[i % 7],
-        bookings: count,
-        date: date.toLocaleDateString()
-      });
-    }
-    return trends;
-  };
+  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  
+  // Initialize counts for each day of week
+  const dayCounts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
 
-  // Calculate booking status distribution from real data
+  bookings.forEach(b => {
+    const date = new Date(b.date || b.bookingDate);
+    if (isNaN(date)) return;
+
+    // getDay() returns 0=Sun,1=Mon,...,6=Sat
+    const dayIndex = date.getDay();
+    const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dayIndex];
+    if (dayCounts[dayName] !== undefined) {
+      dayCounts[dayName]++;
+    }
+  });
+
+  return daysOfWeek.map(day => ({
+    day,
+    bookings: dayCounts[day],
+  }));
+};
+
+  // Booking status distribution
   const calculateBookingStatus = () => {
     const total = bookings.length || 1;
     const approved = bookings.filter(b => b.status === "APPROVED").length;
-    const pending = bookings.filter(b => b.status === "PENDING").length;
+    const pending  = bookings.filter(b => b.status === "PENDING").length;
     const rejected = bookings.filter(b => b.status === "REJECTED").length;
     const cancelled = bookings.filter(b => b.status === "CANCELLED").length;
-    
+
     return [
-      { status: "Approved", value: Math.round((approved / total) * 100), count: approved, color: "bg-emerald-500" },
-      { status: "Pending", value: Math.round((pending / total) * 100), count: pending, color: "bg-amber-500" },
-      { status: "Rejected", value: Math.round((rejected / total) * 100), count: rejected, color: "bg-rose-500" },
-      { status: "Cancelled", value: Math.round((cancelled / total) * 100), count: cancelled, color: "bg-gray-500" },
+      { status: "Approved",  value: Math.round((approved  / total) * 100), count: approved,  color: "bg-emerald-500" },
+      { status: "Pending",   value: Math.round((pending   / total) * 100), count: pending,   color: "bg-amber-500"   },
+      { status: "Rejected",  value: Math.round((rejected  / total) * 100), count: rejected,  color: "bg-rose-500"    },
+      { status: "Cancelled", value: Math.round((cancelled / total) * 100), count: cancelled, color: "bg-gray-500"    },
     ];
   };
 
-  // Get top and least used resources
+  // Resource utilization — uses resourceName (flat field, per BookingAdminPage)
   const getResourceUtilization = () => {
     if (resources.length === 0) return { mostUsed: null, leastUsed: null };
-    
-    const resourceBookingCounts = resources.map(r => ({
+
+    const counts = resources.map(r => ({
       ...r,
-      bookingCount: bookings.filter(b => b.resource?.resourceId === r.resourceId).length
+      // BookingAdminPage shows booking.resourceName is a flat string, not booking.resource.name
+      bookingCount: bookings.filter(b => b.resourceName === r.name).length
     }));
-    
-    const mostUsed = resourceBookingCounts.reduce((prev, current) => 
-      (prev.bookingCount > current.bookingCount) ? prev : current
-    );
-    
-    const leastUsed = resourceBookingCounts.reduce((prev, current) => 
-      (prev.bookingCount < current.bookingCount) ? prev : current
-    );
-    
-    return { mostUsed, leastUsed };
+
+    return {
+      mostUsed:  counts.reduce((prev, cur) => (prev.bookingCount > cur.bookingCount ? prev : cur)),
+      leastUsed: counts.reduce((prev, cur) => (prev.bookingCount < cur.bookingCount ? prev : cur)),
+    };
   };
 
   const bookingTrendData = calculateBookingTrends();
   const bookingStatusData = calculateBookingStatus();
   const { mostUsed: mostUsedResource, leastUsed: leastUsedResource } = getResourceUtilization();
 
-  // Real pending approvals from bookings
-  const pendingApprovals = bookings?.filter(b => b.status === "PENDING")?.slice(0, 4) || [];
+  // Pending approvals — BookingAdminPage uses booking.bookingId, booking.userName,
+  // booking.userEmail, booking.resourceName, booking.date, booking.startTime, booking.endTime
+  const pendingApprovals = bookings.filter(b => b.status === "PENDING").slice(0, 4);
 
-  // Calculate technician stats from bookings assigned to technicians
+  // Technician stats — uses same status values and booking.date
   const technicianStats = {
-    assigned: bookings?.filter(b => b.status === "PENDING" || b.status === "APPROVED").length || 0,
-    completedToday: bookings?.filter(b => {
-      const bookingDate = new Date(b.bookingDate).toDateString();
-      const today = new Date().toDateString();
-      return bookingDate === today && b.status === "APPROVED";
-    }).length || 0,
-    overdue: bookings?.filter(b => {
-      const bookingDate = new Date(b.bookingDate);
-      const today = new Date();
-      return bookingDate < today && b.status === "PENDING";
-    }).length || 0,
+    assigned: bookings.filter(b => b.status === "PENDING" || b.status === "APPROVED").length,
+    completedToday: bookings.filter(b => {
+      const bookingDate = new Date(b.date).toDateString();
+      return bookingDate === new Date().toDateString() && b.status === "APPROVED";
+    }).length,
+    overdue: bookings.filter(b => {
+      return new Date(b.date) < new Date() && b.status === "PENDING";
+    }).length,
   };
+
+  // Today's bookings — uses booking.date
+  const todaysBookings = bookings.filter(b =>
+    new Date(b.date).toDateString() === new Date().toDateString()
+  );
 
   return (
     <Layout>
@@ -226,32 +220,33 @@ function AdminDashboard() {
           Dashboard
         </h1>
         <p className="text-xl text-gray-500 mt-2 font-light">
-          Welcome back, <span className="text-gray-700 font-medium">{user?.name || "Administrator"}</span>
+          Welcome back,{" "}
+          <span className="text-gray-700 font-medium">{user?.name || "Administrator"}</span>
         </p>
       </div>
 
-      {/* ROW 1: KPI Summary Cards - Premium 6-Card Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+      {/* ROW 1: KPI Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {loading ? (
-          <>
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="bg-gray-50 border border-gray-200 rounded-xl p-4 animate-pulse h-28"></div>
-            ))}
-          </>
+          [1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="bg-gray-50 border border-gray-200 rounded-xl p-4 animate-pulse h-28" />
+          ))
         ) : (
           stats.map((stat, idx) => {
             const Icon = stat.icon;
             return (
-              <div key={idx} className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300 group cursor-pointer">
+              <div
+                key={idx}
+                className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300 group cursor-pointer"
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div className={`p-2 rounded-lg ${colorMap[stat.color]}`}>
                     <Icon className="w-5 h-5" />
                   </div>
-                  <div className="text-xs font-semibold text-gray-500">
-                    {stat.change}
-                  </div>
                 </div>
-                <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">{stat.label}</p>
+                <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
+                  {stat.label}
+                </p>
                 <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
               </div>
             );
@@ -259,21 +254,23 @@ function AdminDashboard() {
         )}
       </div>
 
-      {/* ROW 2: Booking Analytics with Charts */}
+      {/* ROW 2: Booking Analytics */}
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
         {/* Booking Trend Chart */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-gray-900">Booking Trends</h2>
-            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">This Week</span>
           </div>
           <div className="flex items-end gap-3 h-40 justify-center">
             {bookingTrendData.map((day, idx) => {
-              const maxHeight = 160;
-              const height = (day.bookings / 25) * maxHeight;
+              const maxVal = Math.max(...bookingTrendData.map(d => d.bookings), 1);
+              const height = (day.bookings / maxVal) * 160;
               return (
                 <div key={idx} className="flex flex-col items-center gap-2 flex-1">
-                  <div className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-lg transition hover:from-indigo-600 hover:to-indigo-500" style={{ height: `${height}px` }}></div>
+                  <div
+                    className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-lg transition hover:from-indigo-600 hover:to-indigo-500"
+                    style={{ height: `${Math.max(height, 4)}px` }}
+                  />
                   <span className="text-xs font-medium text-gray-600">{day.day}</span>
                   <span className="text-xs text-gray-500">{day.bookings}</span>
                 </div>
@@ -282,7 +279,7 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Booking Status Donut Chart */}
+        {/* Booking Status Donut */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">Booking Status</h2>
           <div className="flex items-center justify-center gap-8">
@@ -290,28 +287,32 @@ function AdminDashboard() {
               <div className="relative w-32 h-32">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                   {bookingStatusData.map((item, idx) => {
-                    const offset = bookingStatusData.slice(0, idx).reduce((sum, i) => sum + (i.value / 100) * (2 * Math.PI * 18), 0);
-                    const circumference = 2 * Math.PI * 18;
+                    const circumference = 2 * Math.PI * 15;
+                    const offset = bookingStatusData
+                      .slice(0, idx)
+                      .reduce((sum, i) => sum + (i.value / 100) * circumference, 0);
                     const length = (item.value / 100) * circumference;
+                    const strokeColor =
+                      item.color === "bg-emerald-500" ? "#10b981"
+                      : item.color === "bg-amber-500"  ? "#f59e0b"
+                      : item.color === "bg-rose-500"   ? "#ef4444"
+                      : "#6b7280";
                     return (
                       <circle
                         key={idx}
-                        cx="18"
-                        cy="18"
-                        r="18"
+                        cx="18" cy="18" r="15"
                         fill="none"
-                        stroke={item.color === "bg-emerald-500" ? "#10b981" : item.color === "bg-amber-500" ? "#f59e0b" : item.color === "bg-rose-500" ? "#ef4444" : "#6b7280"}
-                        strokeWidth="8"
+                        stroke={strokeColor}
+                        strokeWidth="6"
                         strokeDasharray={`${length} ${circumference}`}
                         strokeDashoffset={-offset}
-                        strokeLinecap="round"
                       />
                     );
                   })}
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="text-center">
-                    <p className="text-sm font-semibold text-gray-900">100%</p>
+                    <p className="text-sm font-semibold text-gray-900">{bookings.length}</p>
                     <p className="text-xs text-gray-500">Total</p>
                   </span>
                 </div>
@@ -320,9 +321,11 @@ function AdminDashboard() {
             <div className="space-y-3">
               {bookingStatusData.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                  <div className={`w-3 h-3 rounded-full ${item.color}`} />
                   <span className="text-sm text-gray-700">{item.status}</span>
-                  <span className="text-sm font-semibold text-gray-900 ml-auto">{item.value}%</span>
+                  <span className="text-sm font-semibold text-gray-900 ml-auto pl-4">
+                    {item.count}
+                  </span>
                 </div>
               ))}
             </div>
@@ -330,7 +333,7 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* ROW 3: Actions, Alerts, and Pending Approvals */}
+      {/* ROW 3: Pending Approvals, Alerts, Quick Actions */}
       <div className="grid lg:grid-cols-3 gap-6 mb-8">
         {/* Pending Approval Queue */}
         <div className="lg:col-span-1 bg-white border border-gray-200 rounded-2xl overflow-hidden">
@@ -353,10 +356,23 @@ function AdminDashboard() {
             ) : (
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {pendingApprovals.map((booking, idx) => (
-                  <div key={idx} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="font-medium text-gray-900 text-sm">{booking.resource?.name || "Resource"}</p>
-                    <p className="text-xs text-gray-600 mt-1">Requested by: {booking.user?.name || "User"}</p>
-                    <p className="text-xs text-amber-600 font-medium mt-2">{new Date(booking.bookingDate).toLocaleDateString()}</p>
+                  <div key={booking.bookingId || idx} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    {/* FIXED: was booking.resource?.name — correct field is booking.resourceName */}
+                    <p className="font-medium text-gray-900 text-sm">
+                      {booking.resourceName || "Resource"}
+                    </p>
+                    {/* FIXED: was booking.user?.name — correct fields are booking.userName / booking.userEmail */}
+                    <p className="text-xs text-gray-600 mt-1">
+                      {booking.userName || "User"}
+                      {booking.userEmail ? ` · ${booking.userEmail}` : ""}
+                    </p>
+                    {/* FIXED: was booking.bookingDate — correct field is booking.date */}
+                    <p className="text-xs text-amber-600 font-medium mt-2">
+                      {booking.date ? new Date(booking.date).toLocaleDateString() : "N/A"}
+                      {booking.startTime && booking.endTime
+                        ? ` · ${booking.startTime} – ${booking.endTime}`
+                        : ""}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -364,7 +380,7 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Notifications Panel */}
+        {/* Notifications / Alerts Panel */}
         <div className="lg:col-span-1 bg-white border border-gray-200 rounded-2xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
             <FiAlertCircle className="w-5 h-5 text-rose-600" />
@@ -395,33 +411,27 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions Panel */}
+        {/* Quick Actions */}
         <div className="lg:col-span-1 bg-white border border-gray-200 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-2">
-            <button className="w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium text-sm transition duration-200 flex items-center justify-center gap-2">
-              <FiPlus className="w-4 h-4" />
-              Add Resource
+            <button onClick={() => navigate("/admin/resources")} className="w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium text-sm transition duration-200 flex items-center justify-center gap-2">
+              <FiPlus className="w-4 h-4" /> Add Resource
             </button>
-            <button className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg font-medium text-sm transition duration-200 flex items-center justify-center gap-2">
-              <FiPlus className="w-4 h-4" />
-              Add Resource Type
+            <button onClick={() => navigate("/admin/resources")} className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg font-medium text-sm transition duration-200 flex items-center justify-center gap-2">
+              <FiPlus className="w-4 h-4" /> Add Resource Type
             </button>
-            <button className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium text-sm transition duration-200 flex items-center justify-center gap-2">
-              <FiCalendar className="w-4 h-4" />
-              View All Bookings
+            <button onClick={() => navigate("/admin/bookings")} className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium text-sm transition duration-200 flex items-center justify-center gap-2">
+              <FiCalendar className="w-4 h-4" /> View All Bookings
             </button>
             <button className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium text-sm transition duration-200 flex items-center justify-center gap-2">
-              <FiZap className="w-4 h-4" />
-              Create Notification
+              <FiZap className="w-4 h-4" /> Create Notification
             </button>
             <button className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium text-sm transition duration-200 flex items-center justify-center gap-2">
-              <FiTool className="w-4 h-4" />
-              Assign Technician
+              <FiTool className="w-4 h-4" /> Assign Technician
             </button>
             <button className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium text-sm transition duration-200 flex items-center justify-center gap-2">
-              <FiBarChart2 className="w-4 h-4" />
-              View Reports
+              <FiBarChart2 className="w-4 h-4" /> View Reports
             </button>
           </div>
         </div>
@@ -429,45 +439,36 @@ function AdminDashboard() {
 
       {/* ROW 4: Operational Overview */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Resource Status Overview */}
+        {/* Resource Status */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">Resource Status</h2>
           <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Active</span>
-                <span className="text-sm font-bold text-emerald-600">{resources.filter(r => r.status === "ACTIVE")?.length || 0}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${((resources.filter(r => r.status === "ACTIVE")?.length || 0) / resources.length) * 100}%` }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Maintenance</span>
-                <span className="text-sm font-bold text-amber-600">{resources.filter(r => r.status === "MAINTENANCE")?.length || 0}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${((resources.filter(r => r.status === "MAINTENANCE")?.length || 0) / resources.length) * 100}%` }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Out of Service</span>
-                <span className="text-sm font-bold text-rose-600">{resources.filter(r => r.status === "OUT_OF_SERVICE")?.length || 0}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-rose-500 h-2 rounded-full" style={{ width: `${((resources.filter(r => r.status === "OUT_OF_SERVICE")?.length || 0) / resources.length) * 100}%` }}></div>
-              </div>
-            </div>
+            {[
+              { label: "Active",       status: "ACTIVE",       color: "bg-emerald-500", text: "text-emerald-600" },
+              { label: "Maintenance",  status: "MAINTENANCE",  color: "bg-amber-500",   text: "text-amber-600"  },
+              { label: "Out of Service", status: "OUT_OF_SERVICE", color: "bg-rose-500", text: "text-rose-600"  },
+            ].map(({ label, status, color, text }) => {
+              const count = resources.filter(r => r.status === status).length;
+              const pct = resources.length ? (count / resources.length) * 100 : 0;
+              return (
+                <div key={status}>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">{label}</span>
+                    <span className={`text-sm font-bold ${text}`}>{count}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Technician Work Overview */}
+        {/* Technician Tasks */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-            <FiTool className="w-5 h-5 text-indigo-600" />
-            Technician Tasks
+            <FiTool className="w-5 h-5 text-indigo-600" /> Technician Tasks
           </h2>
           <div className="space-y-4">
             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
@@ -485,31 +486,39 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Calendar Snapshot - Today's Bookings */}
+        {/* Today's Schedule */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-            <FiCalendar className="w-5 h-5 text-purple-600" />
-            Today's Schedule
+            <FiCalendar className="w-5 h-5 text-purple-600" /> Today's Schedule
           </h2>
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {bookings?.filter(b => {
-              const bookingDate = new Date(b.bookingDate).toDateString();
-              const today = new Date().toDateString();
-              return bookingDate === today;
-            })?.length === 0 ? (
+            {todaysBookings.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-600 font-medium">No bookings today</p>
                 <p className="text-gray-500 text-sm mt-1">Great day for planning!</p>
               </div>
             ) : (
-              bookings?.filter(b => {
-                const bookingDate = new Date(b.bookingDate).toDateString();
-                const today = new Date().toDateString();
-                return bookingDate === today;
-              })?.slice(0, 6)?.map((booking, idx) => (
-                <div key={idx} className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg">
-                  <p className="text-sm font-semibold text-gray-900">{booking.resource?.name || "Resource"}</p>
-                  <p className="text-xs text-gray-600 mt-1">{booking.user?.name || "User"}</p>
+              todaysBookings.slice(0, 6).map((booking, idx) => (
+                <div
+                  key={booking.bookingId || idx}
+                  className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg"
+                >
+                  {/* FIXED: was booking.resource?.name — correct field is booking.resourceName */}
+                  <p className="text-sm font-semibold text-gray-900">
+                    {booking.resourceName || "Resource"}
+                  </p>
+                  {/* FIXED: was booking.user?.name — correct field is booking.userName */}
+                  <p className="text-xs text-gray-600 mt-1">{booking.userName || "User"}</p>
+                  {/* ADDED: time range from booking.startTime / booking.endTime */}
+                  {booking.startTime && booking.endTime && (
+                    <p className="text-xs text-purple-600 font-medium mt-1">
+                      {booking.startTime} – {booking.endTime}
+                    </p>
+                  )}
+                  {/* ADDED: purpose */}
+                  {booking.purpose && (
+                    <p className="text-xs text-gray-500 mt-1 truncate">{booking.purpose}</p>
+                  )}
                 </div>
               ))
             )}
