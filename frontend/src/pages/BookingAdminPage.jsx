@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Layout from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/api";
@@ -15,15 +15,31 @@ function BookingAdminPage() {
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  // Rejection modal
+  // Rejection modal (for rejecting a booking)
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingBookingId, setRejectingBookingId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  // Rejection reason popup (for viewing the reason on a REJECTED badge)
+  const [reasonPopup, setReasonPopup] = useState({ visible: false, reason: "", anchorRect: null });
+  const popupRef = useRef(null);
 
   // Load bookings on mount and filter changes
   useEffect(() => {
     fetchAllBookings();
   }, [keyword, statusFilter]);
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    if (!reasonPopup.visible) return;
+    const handleClick = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) {
+        setReasonPopup({ visible: false, reason: "", anchorRect: null });
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [reasonPopup.visible]);
 
   const fetchAllBookings = async () => {
     setLoading(true);
@@ -34,14 +50,13 @@ function BookingAdminPage() {
 
       const response = await API.get(url);
       const bookingsData = response.data.content || response.data || [];
-      
-      // Sort bookings by creation date (most recent first)
+
       const sortedBookings = bookingsData.sort((a, b) => {
         const dateA = new Date(a.createdDate || a.createdAt || 0);
         const dateB = new Date(b.createdDate || b.createdAt || 0);
         return dateB - dateA;
       });
-      
+
       setBookings(sortedBookings);
       setError("");
     } catch (err) {
@@ -54,7 +69,6 @@ function BookingAdminPage() {
 
   const handleApprove = async (bookingId) => {
     if (!window.confirm("Approve this booking?")) return;
-
     try {
       await API.patch(`/api/bookings/${bookingId}/approve`);
       setSuccess("Booking approved successfully!");
@@ -77,10 +91,9 @@ function BookingAdminPage() {
       setError("Please provide a reason for rejection");
       return;
     }
-
     try {
       await API.patch(`/api/bookings/${rejectingBookingId}/reject`, {
-        reason: rejectReason
+        reason: rejectReason,
       });
       setSuccess("Booking rejected successfully!");
       setShowRejectModal(false);
@@ -94,11 +107,20 @@ function BookingAdminPage() {
     }
   };
 
+  const handleRejectedBadgeClick = (e, booking) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setReasonPopup({
+      visible: true,
+      reason: booking.adminReason || "No reason provided.",
+      anchorRect: rect,
+    });
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       PENDING: "bg-amber-100 text-amber-800",
       APPROVED: "bg-emerald-100 text-emerald-800",
-      REJECTED: "bg-red-100 text-red-800",
+      REJECTED: "bg-red-100 text-red-800 cursor-pointer hover:bg-red-200 transition",
       CANCELLED: "bg-gray-100 text-gray-800",
     };
     return colors[status] || "bg-gray-100";
@@ -106,30 +128,10 @@ function BookingAdminPage() {
 
   // Stats
   const stats = [
-    {
-      label: "Total Bookings",
-      value: bookings.length,
-      icon: FiCalendar,
-      color: "indigo",
-    },
-    {
-      label: "Pending",
-      value: bookings.filter((b) => b.status === "PENDING").length,
-      icon: FiClock,
-      color: "amber",
-    },
-    {
-      label: "Approved",
-      value: bookings.filter((b) => b.status === "APPROVED").length,
-      icon: FiCheckCircle,
-      color: "emerald",
-    },
-    {
-      label: "Rejected",
-      value: bookings.filter((b) => b.status === "REJECTED").length,
-      icon: FiAlertCircle,
-      color: "red",
-    },
+    { label: "Total Bookings", value: bookings.length, icon: FiCalendar, color: "indigo" },
+    { label: "Pending", value: bookings.filter((b) => b.status === "PENDING").length, icon: FiClock, color: "amber" },
+    { label: "Approved", value: bookings.filter((b) => b.status === "APPROVED").length, icon: FiCheckCircle, color: "emerald" },
+    { label: "Rejected", value: bookings.filter((b) => b.status === "REJECTED").length, icon: FiAlertCircle, color: "red" },
   ];
 
   const colorMap = {
@@ -139,9 +141,20 @@ function BookingAdminPage() {
     red: "text-red-600 bg-red-50",
   };
 
+  // Calculate popup position from anchor rect (fixed, below the badge)
+  const getPopupStyle = () => {
+    if (!reasonPopup.anchorRect) return {};
+    return {
+      position: "fixed",
+      top: reasonPopup.anchorRect.bottom + 8,
+      left: reasonPopup.anchorRect.left,
+      zIndex: 9999,
+    };
+  };
+
   return (
     <Layout>
-      {/* Minimalist Apple-Style Header */}
+      {/* Header */}
       <div className="mb-12 mt-2">
         <h1 className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
           Bookings
@@ -155,22 +168,15 @@ function BookingAdminPage() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-lg mb-4 flex justify-between items-center">
           <span className="font-medium">{error}</span>
-          <button
-            onClick={() => setError("")}
-            className="text-red-600 hover:text-red-800 font-bold text-lg"
-          >
-            ✕
-          </button>
+          <button onClick={() => setError("")} className="text-red-600 hover:text-red-800 font-bold text-lg">✕</button>
         </div>
       )}
-
       {success && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-lg mb-4 flex items-center gap-3">
           <span className="text-lg font-bold">✓</span>
           <span className="font-medium">{success}</span>
         </div>
       )}
-
       {loading && (
         <div className="bg-blue-50 border border-blue-200 text-blue-700 px-5 py-4 rounded-lg mb-4">
           Loading...
@@ -226,10 +232,7 @@ function BookingAdminPage() {
           </select>
           <div></div>
           <button
-            onClick={() => {
-              setKeyword("");
-              setStatusFilter("");
-            }}
+            onClick={() => { setKeyword(""); setStatusFilter(""); }}
             className="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium px-4 py-2 rounded-lg transition"
           >
             Clear
@@ -246,7 +249,7 @@ function BookingAdminPage() {
                 <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Date & Time</th>
                 <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Purpose</th>
                 <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Status</th>
-                {bookings.some(b => b.status === "PENDING") && (
+                {bookings.some((b) => b.status === "PENDING") && (
                   <th className="px-4 py-4 text-center font-semibold text-gray-700 whitespace-nowrap">Actions</th>
                 )}
               </tr>
@@ -264,16 +267,33 @@ function BookingAdminPage() {
                   <td className="px-4 py-4 text-gray-700">
                     <div>
                       <p className="font-medium">{booking.date ? new Date(booking.date).toLocaleDateString() : "N/A"}</p>
-                      <p className="text-sm text-gray-500">{booking.startTime && booking.endTime ? `${booking.startTime} - ${booking.endTime}` : "N/A"}</p>
+                      <p className="text-sm text-gray-500">
+                        {booking.startTime && booking.endTime ? `${booking.startTime} - ${booking.endTime}` : "N/A"}
+                      </p>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-gray-600 text-sm max-w-xs truncate" title={booking.purpose}>{booking.purpose || "N/A"}</td>
-                  <td className="px-4 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}>
-                      {booking.status}
-                    </span>
+                  <td className="px-4 py-4 text-gray-600 text-sm max-w-xs truncate" title={booking.purpose}>
+                    {booking.purpose || "N/A"}
                   </td>
-                  {bookings.some(b => b.status === "PENDING") && (
+                  <td className="px-4 py-4">
+                    {booking.status === "REJECTED" ? (
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${getStatusColor(booking.status)}`}
+                        onClick={(e) => handleRejectedBadgeClick(e, booking)}
+                        title="Click to see rejection reason"
+                      >
+                        {booking.status}
+                        <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+                        </svg>
+                      </span>
+                    ) : (
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}>
+                        {booking.status}
+                      </span>
+                    )}
+                  </td>
+                  {bookings.some((b) => b.status === "PENDING") && (
                     <td className="px-4 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         {booking.status === "PENDING" && (
@@ -316,7 +336,28 @@ function BookingAdminPage() {
         </div>
       </div>
 
-      {/* Rejection Modal */}
+      {/* Rejection Reason Popup */}
+      {reasonPopup.visible && (
+        <div ref={popupRef} style={getPopupStyle()} className="w-72 bg-white border border-red-200 rounded-xl shadow-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 bg-red-50 border-b border-red-100">
+            <div className="flex items-center gap-2 text-red-700">
+              <FiAlertCircle className="w-4 h-4" />
+              <span className="text-sm font-semibold">Rejection Reason</span>
+            </div>
+            <button
+              onClick={() => setReasonPopup({ visible: false, reason: "", anchorRect: null })}
+              className="text-red-400 hover:text-red-600 transition"
+            >
+              <FiX className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-sm text-gray-700 leading-relaxed">{reasonPopup.reason}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Modal (for rejecting a booking) */}
       {showRejectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
