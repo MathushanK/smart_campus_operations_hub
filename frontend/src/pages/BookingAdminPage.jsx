@@ -261,7 +261,7 @@ function BookingAdminPage() {
                   <td className="px-4 py-4 text-gray-700 font-medium">{booking.resourceName || "N/A"}</td>
                   <td className="px-4 py-4 text-gray-700">
                     <div>
-                      <p className="font-medium">{booking.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : "N/A"}</p>
+                      <p className="font-medium">{booking.date ? new Date(booking.date).toLocaleDateString() : "N/A"}</p>
                       <p className="text-xs text-gray-500">{booking.startTime && booking.endTime ? `${booking.startTime} - ${booking.endTime}` : "N/A"}</p>
                     </div>
                   </td>
