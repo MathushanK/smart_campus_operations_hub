@@ -237,7 +237,7 @@ function BookingAdminPage() {
         </div>
 
         {/* Bookings Table */}
-        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px] border border-gray-200 rounded-lg">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -246,7 +246,9 @@ function BookingAdminPage() {
                 <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Date & Time</th>
                 <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Purpose</th>
                 <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Status</th>
-                <th className="px-4 py-4 text-center font-semibold text-gray-700 whitespace-nowrap">Actions</th>
+                {bookings.some(b => b.status === "PENDING") && (
+                  <th className="px-4 py-4 text-center font-semibold text-gray-700 whitespace-nowrap">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -255,47 +257,51 @@ function BookingAdminPage() {
                   <td className="px-4 py-4 text-gray-900">
                     <div>
                       <p className="font-medium">{booking.userName || "N/A"}</p>
-                      <p className="text-xs text-gray-500">{booking.userEmail || "N/A"}</p>
+                      <p className="text-sm text-gray-500">{booking.userEmail || "N/A"}</p>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-gray-700 font-medium">{booking.resourceName || "N/A"}</td>
                   <td className="px-4 py-4 text-gray-700">
                     <div>
-                      <p className="font-medium">{booking.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : "N/A"}</p>
-                      <p className="text-xs text-gray-500">{booking.startTime && booking.endTime ? `${booking.startTime} - ${booking.endTime}` : "N/A"}</p>
+                      <p className="font-medium">{booking.date ? new Date(booking.date).toLocaleDateString() : "N/A"}</p>
+                      <p className="text-sm text-gray-500">{booking.startTime && booking.endTime ? `${booking.startTime} - ${booking.endTime}` : "N/A"}</p>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-gray-600 text-xs max-w-xs truncate" title={booking.purpose}>{booking.purpose || "N/A"}</td>
+                  <td className="px-4 py-4 text-gray-600 text-sm max-w-xs truncate" title={booking.purpose}>{booking.purpose || "N/A"}</td>
                   <td className="px-4 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}>
                       {booking.status}
                     </span>
                   </td>
-                  <td className="px-4 py-4 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      {booking.status === "PENDING" && (
-                        <>
-                          <button
-                            onClick={() => handleApprove(booking.bookingId)}
-                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded transition"
-                            title="Approve"
-                          >
-                            <FiCheck className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleRejectClick(booking.bookingId)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded transition"
-                            title="Reject"
-                          >
-                            <FiX className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                      {booking.status !== "PENDING" && (
-                        <span className="text-gray-400 text-xs">-</span>
-                      )}
-                    </div>
-                  </td>
+                  {bookings.some(b => b.status === "PENDING") && (
+                    <td className="px-4 py-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        {booking.status === "PENDING" && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(booking.bookingId)}
+                              className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded text-s font-medium transition"
+                              title="Approve"
+                            >
+                              <FiCheck className="w-3 h-3" />
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectClick(booking.bookingId)}
+                              className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-s font-medium transition"
+                              title="Reject"
+                            >
+                              <FiX className="w-3 h-3" />
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        {booking.status !== "PENDING" && (
+                          <span className="text-gray-400 text-xs">-</span>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

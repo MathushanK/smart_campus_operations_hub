@@ -1,12 +1,42 @@
 import Layout from "../components/Layout";
 import { useNotifications } from "../hooks/useNotifications";
 import { useAuth } from "../context/AuthContext";
+import API from "../api/api";
+import { useState, useEffect } from "react";
 import { FiBox, FiClock, FiCalendar, FiBell, FiAlertCircle } from "react-icons/fi";
 
 function UserDashboard() {
-  const { notifications, loading } = useNotifications();
+  const { notifications, loading: notificationsLoading } = useNotifications();
   const { user } = useAuth();
   const userName = user?.name || "User";
+  const [bookings, setBookings] = useState([]);
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch bookings and resources data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [bookingsRes, resourcesRes] = await Promise.all([
+          API.get("/api/bookings?size=1000"),
+          API.get("/resources")
+        ]);
+        setBookings(bookingsRes.data.content || bookingsRes.data || []);
+        setResources(resourcesRes.data || []);
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Calculate stats
+  const activeBookings = bookings.filter(b => b.status === "APPROVED").length;
+  const availableResources = resources.filter(r => r.status === "ACTIVE").length;
+  const pendingApprovals = bookings.filter(b => b.status === "PENDING").length;
 
   return (
     <Layout>
@@ -30,8 +60,8 @@ function UserDashboard() {
             </div>
           </div>
           <p className="text-sm font-medium text-gray-600 mb-2">Active Bookings</p>
-          <p className="text-3xl font-bold text-gray-900">5</p>
-          <p className="text-xs text-gray-500 mt-2">↑ 2 from last week</p>
+          <p className="text-3xl font-bold text-gray-900">{activeBookings}</p>
+          <p className="text-xs text-gray-500 mt-2">Approved bookings</p>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition">
@@ -41,8 +71,8 @@ function UserDashboard() {
             </div>
           </div>
           <p className="text-sm font-medium text-gray-600 mb-2">Available Resources</p>
-          <p className="text-3xl font-bold text-gray-900">12</p>
-          <p className="text-xs text-gray-500 mt-2">↓ 3 currently booked</p>
+          <p className="text-3xl font-bold text-gray-900">{availableResources}</p>
+          <p className="text-xs text-gray-500 mt-2">Currently available</p>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition">
@@ -52,7 +82,7 @@ function UserDashboard() {
             </div>
           </div>
           <p className="text-sm font-medium text-gray-600 mb-2">Pending Approvals</p>
-          <p className="text-3xl font-bold text-gray-900">3</p>
+          <p className="text-3xl font-bold text-gray-900">{pendingApprovals}</p>
           <p className="text-xs text-gray-500 mt-2">Awaiting admin review</p>
         </div>
 
@@ -72,7 +102,7 @@ function UserDashboard() {
 
             {/* Content */}
             <div className="p-6">
-              {loading ? (
+              {notificationsLoading ? (
                 <div className="text-center py-12">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-3"></div>
                   <p className="text-gray-600 font-medium">Loading notifications...</p>
