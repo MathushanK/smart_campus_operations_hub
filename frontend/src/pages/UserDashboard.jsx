@@ -1,6 +1,7 @@
 import Layout from "../components/Layout";
 import { useNotifications } from "../hooks/useNotifications";
 import { useAuth } from "../context/AuthContext";
+import { FiBox, FiClock, FiCalendar, FiBell, FiAlertCircle } from "react-icons/fi";
 
 function UserDashboard() {
   const { notifications, loading } = useNotifications();
@@ -9,92 +10,89 @@ function UserDashboard() {
 
   return (
     <Layout>
-      {/* PREMIUM WELCOME BANNER */}
-      <div className="bg-linear-to-r from-blue-600 to-blue-400 rounded-2xl p-8 mb-8 shadow-lg text-white">
-        <h1 className="text-4xl font-bold mb-2">Welcome back, User! 👋</h1>
-        <p className="text-blue-100">
-          Showing notification data for user ID {user?.userId ?? user?.id ?? "-"} and role ID {user?.roleId ?? "-"}.
+      {/* Minimalist Apple-Style Header */}
+      <div className="mb-12 mt-2">
+        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
+          Welcome back, {userName}!
+        </h1>
+        <p className="text-xl text-gray-500 mt-3 font-light">
+          Here's your resource booking overview for today
         </p>
-        <p className="text-blue-50 text-sm mt-2">Signed in as {userName}</p>
       </div>
 
       {/* STATS CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         
-        <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition duration-300 border-l-4 border-blue-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-semibold">Active Bookings</p>
-              <h3 className="text-3xl font-bold text-gray-800 mt-2">5</h3>
-            </div>
-            <div className="bg-blue-100 p-4 rounded-full">
-              <span className="text-2xl">📅</span>
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-3 rounded-xl text-indigo-600 bg-indigo-50">
+              <FiCalendar className="w-6 h-6" />
             </div>
           </div>
+          <p className="text-sm font-medium text-gray-600 mb-2">Active Bookings</p>
+          <p className="text-3xl font-bold text-gray-900">5</p>
+          <p className="text-xs text-gray-500 mt-2">↑ 2 from last week</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition duration-300 border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-semibold">Resources Available</p>
-              <h3 className="text-3xl font-bold text-gray-800 mt-2">12</h3>
-            </div>
-            <div className="bg-green-100 p-4 rounded-full">
-              <span className="text-2xl">🏢</span>
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-3 rounded-xl text-emerald-600 bg-emerald-50">
+              <FiBox className="w-6 h-6" />
             </div>
           </div>
+          <p className="text-sm font-medium text-gray-600 mb-2">Available Resources</p>
+          <p className="text-3xl font-bold text-gray-900">12</p>
+          <p className="text-xs text-gray-500 mt-2">↓ 3 currently booked</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition duration-300 border-l-4 border-purple-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-semibold">Pending Requests</p>
-              <h3 className="text-3xl font-bold text-gray-800 mt-2">3</h3>
-            </div>
-            <div className="bg-purple-100 p-4 rounded-full">
-              <span className="text-2xl">⏳</span>
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-3 rounded-xl text-amber-600 bg-amber-50">
+              <FiClock className="w-6 h-6" />
             </div>
           </div>
+          <p className="text-sm font-medium text-gray-600 mb-2">Pending Approvals</p>
+          <p className="text-3xl font-bold text-gray-900">3</p>
+          <p className="text-xs text-gray-500 mt-2">Awaiting admin review</p>
         </div>
 
       </div>
 
-      {/* NOTIFICATIONS & QUICK ACTIONS */}
+      {/* NOTIFICATIONS & INFO SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* NOTIFICATIONS SECTION */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
             
             {/* Header */}
-            <div className="bg-linear-to-r from-blue-600 to-blue-500 px-6 py-4">
-              <h2 className="text-xl font-bold text-white">📢 Your Notifications</h2>
+            <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-900">Recent Notifications</h2>
             </div>
 
             {/* Content */}
             <div className="p-6">
               {loading ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Loading notifications...</p>
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-3"></div>
+                  <p className="text-gray-600 font-medium">Loading notifications...</p>
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="text-center py-12">
-                  <span className="text-4xl mb-4 block">🔔</span>
-                  <p className="text-gray-500 text-lg">No notifications yet</p>
-                  <p className="text-gray-400 text-sm mt-2">You're all caught up!</p>
+                  <FiBell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-gray-600 text-lg font-medium">No notifications yet</p>
+                  <p className="text-gray-500 text-sm mt-2">You're all caught up! Check back soon</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {notifications.map(n => (
-                    <div key={n.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition duration-200 border-l-4 border-blue-400">
-                      <div className="text-2xl mt-1">
-                        {!n.read ? "📬" : "📭"}
-                      </div>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {notifications.slice(0, 5).map(n => (
+                    <div key={n.id} className={`flex items-start gap-3 p-4 rounded-lg border transition ${!n.read ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-200'} hover:border-gray-300`}>
+                      <div className={`w-2 h-2 mt-2 rounded-full shrink-0 ${!n.read ? 'bg-indigo-600' : 'bg-gray-400'}`}></div>
                       <div className="flex-1 min-w-0">
-                        <p className={`font-medium ${!n.read ? "text-gray-900" : "text-gray-600"}`}>
+                        <p className={`font-medium text-sm ${!n.read ? 'text-gray-900' : 'text-gray-700'}`}>
                           {n.title || "Notification"}
                         </p>
-                        <p className="text-gray-700 text-sm mt-1">{n.message}</p>
+                        <p className="text-gray-600 text-sm mt-1 line-clamp-2">{n.message}</p>
                         <p className="text-gray-500 text-xs mt-2">
                           {n.timestamp ? new Date(n.timestamp).toLocaleDateString() : "Just now"}
                         </p>
@@ -107,37 +105,35 @@ function UserDashboard() {
           </div>
         </div>
 
-        {/* QUICK ACTIONS */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-linear-to-r from-blue-600 to-blue-500 px-6 py-4">
-            <h2 className="text-xl font-bold text-white">⚡ Quick Actions</h2>
+        {/* QUICK ACTIONS & INFO */}
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
+            <h2 className="text-xl font-bold text-gray-900">Quick Links</h2>
           </div>
           
           <div className="p-6 space-y-3">
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg">
-              📅 Book Resource
-            </button>
+            <a href="/user/bookings" className="w-full block px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-lg transition text-center">
+              My Bookings
+            </a>
             
-            <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg">
-              🔧 Report Issue
-            </button>
+            <a href="/user/resources" className="w-full block px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-lg transition text-center">
+              Browse Resources
+            </a>
             
-            <button className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg">
-              👤 View Profile
-            </button>
-            
-            <button className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg">
-              ❓ Get Help
-            </button>
+            <a href="/notifications" className="w-full block px-4 py-3 border border-gray-300 hover:bg-gray-50 text-gray-900 font-medium rounded-lg transition text-center">
+              All Notifications
+            </a>
           </div>
 
-          {/* Recent Activity */}
-          <div className="px-6 py-4 bg-gray-50 border-t">
-            <h3 className="text-sm font-bold text-gray-700 mb-3">Recent Activity</h3>
-            <div className="space-y-2 text-xs text-gray-600">
-              <p>✓ Booked Lab A - Today</p>
-              <p>✓ Report filed - Yesterday</p>
-              <p>✓ Resource confirmed - 2 days ago</p>
+          {/* INFO BOX */}
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div className="flex gap-3">
+              <FiAlertCircle className="w-5 h-5 text-gray-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-medium text-gray-700 leading-relaxed">
+                  Bookings require admin approval. You'll be notified once your booking is reviewed.
+                </p>
+              </div>
             </div>
           </div>
         </div>

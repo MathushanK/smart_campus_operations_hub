@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/api";
+import { FiCalendar, FiClock, FiCheckCircle, FiAlertCircle, FiX, FiSearch, FiFilter, FiCheck, FiTrash2 } from "react-icons/fi";
 
 function BookingAdminPage() {
   const { user } = useAuth();
@@ -95,22 +96,12 @@ function BookingAdminPage() {
 
   const getStatusColor = (status) => {
     const colors = {
-      PENDING: "bg-yellow-100 text-yellow-800",
-      APPROVED: "bg-green-100 text-green-800",
+      PENDING: "bg-amber-100 text-amber-800",
+      APPROVED: "bg-emerald-100 text-emerald-800",
       REJECTED: "bg-red-100 text-red-800",
       CANCELLED: "bg-gray-100 text-gray-800",
     };
     return colors[status] || "bg-gray-100";
-  };
-
-  const getStatusBadgeColor = (status) => {
-    const colors = {
-      PENDING: "bg-yellow-500",
-      APPROVED: "bg-green-500",
-      REJECTED: "bg-red-500",
-      CANCELLED: "bg-gray-500",
-    };
-    return colors[status] || "bg-gray-500";
   };
 
   // Stats
@@ -118,45 +109,55 @@ function BookingAdminPage() {
     {
       label: "Total Bookings",
       value: bookings.length,
-      icon: "📅",
-      color: "blue",
+      icon: FiCalendar,
+      color: "indigo",
     },
     {
       label: "Pending",
       value: bookings.filter((b) => b.status === "PENDING").length,
-      icon: "⏳",
-      color: "yellow",
+      icon: FiClock,
+      color: "amber",
     },
     {
       label: "Approved",
       value: bookings.filter((b) => b.status === "APPROVED").length,
-      icon: "✅",
-      color: "green",
+      icon: FiCheckCircle,
+      color: "emerald",
     },
     {
       label: "Rejected",
       value: bookings.filter((b) => b.status === "REJECTED").length,
-      icon: "❌",
+      icon: FiAlertCircle,
       color: "red",
     },
   ];
 
+  const colorMap = {
+    indigo: "text-indigo-600 bg-indigo-50",
+    amber: "text-amber-600 bg-amber-50",
+    emerald: "text-emerald-600 bg-emerald-50",
+    red: "text-red-600 bg-red-50",
+  };
+
   return (
     <Layout>
-      {/* HEADER */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-8 mb-8 shadow-lg text-white">
-        <h1 className="text-4xl font-bold mb-2">Booking Management 📋</h1>
-        <p className="text-purple-100">Review, approve, and manage all user bookings</p>
-        <p className="text-purple-50 text-sm mt-2">Admin - {user?.name}</p>
+      {/* Minimalist Apple-Style Header */}
+      <div className="mb-12 mt-2">
+        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
+          Bookings
+        </h1>
+        <p className="text-xl text-gray-500 mt-3 font-light">
+          Review and manage all booking requests
+        </p>
       </div>
 
       {/* ALERTS */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-lg mb-4 flex justify-between items-center">
+          <span className="font-medium">{error}</span>
           <button
             onClick={() => setError("")}
-            className="float-right font-bold"
+            className="text-red-600 hover:text-red-800 font-bold text-lg"
           >
             ✕
           </button>
@@ -164,315 +165,176 @@ function BookingAdminPage() {
       )}
 
       {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4">
-          ✓ {success}
+        <div className="bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-lg mb-4 flex items-center gap-3">
+          <span className="text-lg font-bold">✓</span>
+          <span className="font-medium">{success}</span>
+        </div>
+      )}
+
+      {loading && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-5 py-4 rounded-lg mb-4">
+          Loading...
         </div>
       )}
 
       {/* STATS CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
         {stats.map((stat, idx) => {
-          const bgColorMap = {
-            blue: "bg-blue-100",
-            yellow: "bg-yellow-100",
-            green: "bg-green-100",
-            red: "bg-red-100",
-          };
-          const textColorMap = {
-            blue: "text-blue-800",
-            yellow: "text-yellow-800",
-            green: "text-green-800",
-            red: "text-red-800",
-          };
-
+          const Icon = stat.icon;
           return (
-            <div key={idx} className={`${bgColorMap[stat.color]} rounded-xl p-6 shadow-md`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className={`text-sm font-semibold ${textColorMap[stat.color]}`}>
-                    {stat.label}
-                  </p>
-                  <h3 className={`text-3xl font-bold ${textColorMap[stat.color]} mt-2`}>
-                    {stat.value}
-                  </h3>
+            <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition">
+              <div className="flex items-start justify-between mb-4">
+                <div className={`p-3 rounded-xl ${colorMap[stat.color]}`}>
+                  <Icon className="w-6 h-6" />
                 </div>
-                <div className="text-3xl">{stat.icon}</div>
               </div>
+              <p className="text-sm font-medium text-gray-600 mb-2">{stat.label}</p>
+              <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
             </div>
           );
         })}
       </div>
 
-      {/* SEARCH & FILTER */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Search & Filter Bookings</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-gray-700 font-semibold mb-2">
-              Search (Purpose, Resource, User, Email)
-            </label>
+      {/* BOOKINGS TABLE SECTION */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">All Bookings</h2>
+        </div>
+
+        {/* Search & Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value);
-              }}
               placeholder="Search bookings..."
-              className="w-full p-3 border border-gray-300 rounded-lg"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
           </div>
-          <div>
-            <label className="block text-gray-700 font-semibold mb-2">
-              Filter by Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-              }}
-              className="w-full p-3 border border-gray-300 rounded-lg"
-            >
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
-              <option value="REJECTED">Rejected</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setKeyword("");
-                setStatusFilter("");
-              }}
-              className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition"
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* BOOKINGS TABLE */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">All Bookings</h2>
-        </div>
-
-        {loading ? (
-          <div className="p-6 text-center text-gray-500">Loading...</div>
-        ) : bookings.length === 0 ? (
-          <div className="p-6 text-center text-gray-400">No bookings found</div>
-        ) : (
-          <div className="overflow-auto max-h-[600px]">
-            <table className="w-full">
-              <thead className="bg-gray-100 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                    Resource
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                    Date & Time
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                    Purpose
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-center text-sm font-semibold text-gray-700">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map((booking) => (
-                  <tr key={booking.bookingId} className="border-b border-gray-200 hover:bg-gray-50 transition">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {booking.userName}
-                        </p>
-                        <p className="text-sm text-gray-500">{booking.userEmail}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {booking.resourceName}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {booking.resourceLocation}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <div className="text-gray-800">
-                        <p className="font-semibold">{booking.date}</p>
-                        <p className="text-gray-500">
-                          {booking.startTime} - {booking.endTime}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {booking.purpose}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
-                          booking.status
-                        )}`}
-                      >
-                        {booking.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2 justify-center">
-                        {booking.status === "PENDING" && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(booking.bookingId)}
-                              className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded transition text-sm font-semibold"
-                            >
-                              ✓ Approve
-                            </button>
-                            <button
-                              onClick={() => handleRejectClick(booking.bookingId)}
-                              className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm font-semibold"
-                            >
-                              ✕ Reject
-                            </button>
-                          </>
-                        )}
-                        {booking.status !== "PENDING" && (
-                          <span className="text-gray-400 text-sm">
-                            No actions
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* EXPANDABLE DETAILS (Mobile) */}
-      <div className="hidden md:hidden space-y-4 mt-8">
-        {bookings.map((booking) => (
-          <div
-            key={booking.bookingId}
-            className="bg-white rounded-xl shadow-lg p-6"
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
           >
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="text-lg font-bold text-gray-800">
-                  {booking.resourceName}
-                </h3>
-                <p className="text-sm text-gray-500">{booking.userName}</p>
-              </div>
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
-                  booking.status
-                )}`}
-              >
-                {booking.status}
-              </span>
+            <option value="">All Status</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+          <div></div>
+          <button
+            onClick={() => {
+              setKeyword("");
+              setStatusFilter("");
+            }}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium px-4 py-2 rounded-lg transition"
+          >
+            Clear
+          </button>
+        </div>
+
+        {/* Bookings Table */}
+        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">User</th>
+                <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Resource</th>
+                <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Date & Time</th>
+                <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Purpose</th>
+                <th className="px-4 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Status</th>
+                <th className="px-4 py-4 text-center font-semibold text-gray-700 whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((booking) => (
+                <tr key={booking.bookingId} className="border-b border-gray-200 hover:bg-blue-50 transition duration-150">
+                  <td className="px-4 py-4 text-gray-900">
+                    <div>
+                      <p className="font-medium">{booking.userName || "N/A"}</p>
+                      <p className="text-xs text-gray-500">{booking.userEmail || "N/A"}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-gray-700 font-medium">{booking.resourceName || "N/A"}</td>
+                  <td className="px-4 py-4 text-gray-700">
+                    <div>
+                      <p className="font-medium">{booking.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : "N/A"}</p>
+                      <p className="text-xs text-gray-500">{booking.startTime && booking.endTime ? `${booking.startTime} - ${booking.endTime}` : "N/A"}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-gray-600 text-xs max-w-xs truncate" title={booking.purpose}>{booking.purpose || "N/A"}</td>
+                  <td className="px-4 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}>
+                      {booking.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      {booking.status === "PENDING" && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(booking.bookingId)}
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded transition"
+                            title="Approve"
+                          >
+                            <FiCheck className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleRejectClick(booking.bookingId)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded transition"
+                            title="Reject"
+                          >
+                            <FiX className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {booking.status !== "PENDING" && (
+                        <span className="text-gray-400 text-xs">-</span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {bookings.length === 0 && (
+            <div className="text-center py-12 text-gray-500 bg-gray-50">
+              <FiFilter className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="font-semibold">No bookings found</p>
+              <p className="text-sm">Try adjusting your filters</p>
             </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
-              <div>
-                <p className="text-gray-500">Date</p>
-                <p className="font-semibold text-gray-800">{booking.date}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Time</p>
-                <p className="font-semibold text-gray-800">
-                  {booking.startTime} - {booking.endTime}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500">Location</p>
-                <p className="font-semibold text-gray-800">
-                  {booking.resourceLocation}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500">Status</p>
-                <p className="font-semibold text-gray-800">{booking.status}</p>
-              </div>
-            </div>
-
-            <p className="text-gray-700 mb-4">
-              <strong>Purpose:</strong> {booking.purpose}
-            </p>
-
-            {booking.adminReason && (
-              <div className="bg-red-50 border border-red-200 p-3 rounded mb-4">
-                <p className="text-sm">
-                  <strong>Rejection Reason:</strong> {booking.adminReason}
-                </p>
-              </div>
-            )}
-
-            {booking.status === "PENDING" && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleApprove(booking.bookingId)}
-                  className="flex-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded transition text-sm font-semibold"
-                >
-                  ✓ Approve
-                </button>
-                <button
-                  onClick={() => handleRejectClick(booking.bookingId)}
-                  className="flex-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm font-semibold"
-                >
-                  ✕ Reject
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+          )}
+        </div>
       </div>
 
-      {/* REJECTION MODAL */}
+      {/* Rejection Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Reject Booking</h2>
-            <p className="text-gray-600 mb-4">
-              Please provide a reason for rejecting this booking. The user will be notified.
-            </p>
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Reject Booking</h2>
+            <p className="text-gray-600 mb-6">Please provide a reason for rejecting this booking.</p>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Enter rejection reason..."
-              className="w-full p-3 border border-gray-300 rounded-lg mb-4"
-              rows="5"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 mb-6"
+              rows="4"
             />
-
             <div className="flex gap-3">
               <button
-                onClick={handleRejectSubmit}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg transition"
-              >
-                Reject
-              </button>
-              <button
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectReason("");
-                  setRejectingBookingId(null);
-                }}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition"
+                onClick={() => setShowRejectModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition"
               >
                 Cancel
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition"
+              >
+                Reject
               </button>
             </div>
           </div>
