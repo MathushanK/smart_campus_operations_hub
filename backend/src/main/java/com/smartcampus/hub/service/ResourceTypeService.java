@@ -2,6 +2,7 @@ package com.smartcampus.hub.service;
 
 import com.smartcampus.hub.dto.ResourceTypeDTO;
 import com.smartcampus.hub.model.ResourceType;
+import com.smartcampus.hub.repository.ResourceRepository;
 import com.smartcampus.hub.repository.ResourceTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 public class ResourceTypeService {
 
     private final ResourceTypeRepository repo;
+    private final ResourceRepository resourceRepo;
 
     public List<ResourceTypeDTO> getAll() {
         return repo.findAll().stream().map(this::toDTO).collect(Collectors.toList());
@@ -38,6 +40,9 @@ public class ResourceTypeService {
     }
 
     public void delete(Integer id) {
+        // Cascade delete: first delete all resources of this type
+        resourceRepo.deleteAll(resourceRepo.findByResourceType_TypeId(id));
+        // Then delete the resource type
         repo.deleteById(id);
     }
 

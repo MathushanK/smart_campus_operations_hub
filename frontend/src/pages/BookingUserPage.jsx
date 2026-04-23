@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/api";
+import { FiCalendar, FiBriefcase, FiClock, FiUsers, FiAlertCircle, FiCheckCircle, FiX } from "react-icons/fi";
 
 function BookingUserPage() {
   const { user } = useAuth();
@@ -327,20 +328,23 @@ function BookingUserPage() {
 
   return (
     <Layout>
-      {/* HEADER */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-2xl p-8 mb-8 shadow-lg text-white">
-        <h1 className="text-4xl font-bold mb-2">My Bookings 📅</h1>
-        <p className="text-blue-100">Create, manage, and track your resource bookings</p>
-        <p className="text-blue-50 text-sm mt-2">Signed in as {user?.name}</p>
+      {/* Minimalist Apple-Style Header */}
+      <div className="mb-12 mt-2">
+        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
+          My Bookings
+        </h1>
+        <p className="text-xl text-gray-500 mt-3 font-light">
+          Create, manage, and track your resource bookings
+        </p>
       </div>
 
       {/* ALERTS */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-lg mb-4 flex justify-between items-center">
+          <span className="font-medium">{error}</span>
           <button
             onClick={() => setError("")}
-            className="float-right font-bold"
+            className="text-red-600 hover:text-red-800 font-bold text-lg"
           >
             ✕
           </button>
@@ -348,13 +352,14 @@ function BookingUserPage() {
       )}
 
       {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4">
-          ✓ {success}
+        <div className="bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-lg mb-4 flex items-center gap-3">
+          <span className="text-lg font-bold">✓</span>
+          <span className="font-medium">{success}</span>
         </div>
       )}
 
       {/* CREATE/EDIT BOOKING FORM */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+      <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
         <div
           className="flex justify-between items-center cursor-pointer"
           onClick={() => {
@@ -375,24 +380,24 @@ function BookingUserPage() {
             }
           }}
         >
-          <h2 className="text-2xl font-bold text-gray-800">
+          <h2 className="text-2xl font-bold text-gray-900">
             {editing ? "Edit Booking" : "New Booking"}
           </h2>
-          <span className="text-2xl">{showForm ? "▼" : "▶"}</span>
+          <span className="text-2xl text-gray-600 group-hover:scale-110 transition">{showForm ? "▼" : "▶"}</span>
         </div>
 
         {showForm && (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
             {/* Resource Selection */}
             <div>
               <label className="block text-gray-700 font-semibold mb-2">
-                Resource *
+                Resource <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.resourceId}
                 onChange={handleResourceChange}
-                className={`w-full p-3 border rounded-lg ${
-                  formErrors.resourceId ? "border-red-500" : "border-gray-300"
+                className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
+                  formErrors.resourceId ? "border-red-500" : "border-gray-300 hover:border-gray-400"
                 }`}
               >
                 <option value="">Select a resource</option>
@@ -414,32 +419,30 @@ function BookingUserPage() {
                 ))}
               </select>
               {selectedResource && (
-                <p className="text-sm text-blue-600 mt-2">
-                  📍 Available: {selectedResource.availabilityStart} -{" "}
-                  {selectedResource.availabilityEnd}
+                <p className="text-sm text-gray-600 mt-2 font-medium">
+                  Available: {selectedResource.availabilityStart} - {selectedResource.availabilityEnd}
                   {selectedResource.capacity && (
-                    <span className="ml-2 bg-blue-100 px-2 py-1 rounded">
+                    <span className="ml-2 bg-gray-100 text-gray-700 px-2 py-1 rounded font-semibold text-xs">
                       Max {selectedResource.capacity}
                     </span>
                   )}
                 </p>
               )}
               {formErrors.resourceId && (
-                <p className="text-red-500 text-sm">{formErrors.resourceId}</p>
+                <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.resourceId}</p>
               )}
             </div>
 
             {/* Date */}
             <div>
               <label className="block text-gray-700 font-semibold mb-2">
-                Date *
+                Date <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => {
                   setFormData({ ...formData, date: e.target.value });
-                  // Clear time-related errors when date changes
                   const newFormErrors = { ...formErrors };
                   delete newFormErrors.time;
                   delete newFormErrors.conflict;
@@ -447,12 +450,12 @@ function BookingUserPage() {
                   setConflictCheck(null);
                 }}
                 min={new Date().toISOString().split("T")[0]}
-                className={`w-full p-3 border rounded-lg ${
-                  formErrors.date ? "border-red-500" : "border-gray-300"
+                className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
+                  formErrors.date ? "border-red-500" : "border-gray-300 hover:border-gray-400"
                 }`}
               />
               {formErrors.date && (
-                <p className="text-red-500 text-sm">{formErrors.date}</p>
+                <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.date}</p>
               )}
             </div>
 
@@ -460,59 +463,51 @@ function BookingUserPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Start Time *
+                  Start Time <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => handleTimeChange("startTime", e.target.value)}
-                  className={`w-full p-3 border rounded-lg ${
-                    formErrors.startTime ? "border-red-500" : "border-gray-300"
+                  className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
+                    formErrors.startTime ? "border-red-500" : "border-gray-300 hover:border-gray-400"
                   }`}
                 />
                 {formErrors.startTime && (
-                  <p className="text-red-500 text-sm">{formErrors.startTime}</p>
+                  <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.startTime}</p>
                 )}
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2">
-                  End Time *
+                  End Time <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => handleTimeChange("endTime", e.target.value)}
-                  className={`w-full p-3 border rounded-lg ${
-                    formErrors.endTime ? "border-red-500" : "border-gray-300"
+                  className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
+                    formErrors.endTime ? "border-red-500" : "border-gray-300 hover:border-gray-400"
                   }`}
                 />
                 {formErrors.endTime && (
-                  <p className="text-red-500 text-sm">{formErrors.endTime}</p>
+                  <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.endTime}</p>
                 )}
               </div>
             </div>
 
-            {/* Conflict Check */}
-            {conflictCheck && conflictCheck.hasConflict && (
-              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                {`⚠️ ${conflictCheck.message}`}
-              </div>
-            )}
-            {formErrors.time && (
-              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                ⚠️ {formErrors.time}
-              </div>
-            )}
-            {formErrors.conflict && (
-              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                ⚠️ {formErrors.conflict}
+            {/* Conflict Check & Time Errors */}
+            {(conflictCheck?.hasConflict || formErrors.time || formErrors.conflict) && (
+              <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg font-medium">
+                {conflictCheck?.hasConflict && <div>⚠️ {conflictCheck.message}</div>}
+                {formErrors.time && <div>⚠️ {formErrors.time}</div>}
+                {formErrors.conflict && <div>⚠️ {formErrors.conflict}</div>}
               </div>
             )}
 
             {/* Purpose */}
             <div>
               <label className="block text-gray-700 font-semibold mb-2">
-                Purpose *
+                Purpose <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.purpose}
@@ -520,21 +515,22 @@ function BookingUserPage() {
                   setFormData({ ...formData, purpose: e.target.value })
                 }
                 placeholder="What will you use this resource for?"
-                className={`w-full p-3 border rounded-lg ${
-                  formErrors.purpose ? "border-red-500" : "border-gray-300"
+                className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
+                  formErrors.purpose ? "border-red-500" : "border-gray-300 hover:border-gray-400"
                 }`}
                 rows="3"
               />
               {formErrors.purpose && (
-                <p className="text-red-500 text-sm">{formErrors.purpose}</p>
+                <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.purpose}</p>
               )}
             </div>
 
-            {/* Attendees (only if capacity exists) */}
+            {/* Attendees */}
             {selectedResource?.capacity && (
               <div>
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Expected Attendees * (Max: {selectedResource.capacity})
+                  Expected Attendees <span className="text-red-500">*</span>
+                  <span className="text-gray-500 font-normal"> (Max: {selectedResource.capacity})</span>
                 </label>
                 <input
                   type="number"
@@ -546,23 +542,22 @@ function BookingUserPage() {
                   max={selectedResource.capacity}
                   placeholder="Number of attendees"
                   required
-                  className={`w-full p-3 border rounded-lg ${
-                    formErrors.attendees ? "border-red-500" : "border-gray-300"
+                  className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
+                    formErrors.attendees ? "border-red-500" : "border-gray-300 hover:border-gray-400"
                   }`}
                 />
                 {formErrors.attendees && (
-                  <p className="text-red-500 text-sm">{formErrors.attendees}</p>
+                  <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.attendees}</p>
                 )}
               </div>
             )}
-          
 
             {/* Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-4 pt-4">
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition"
+                className="flex-1 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition disabled:opacity-50"
               >
                 {loading ? "Saving..." : editing ? "Update Booking" : "Create Booking"}
               </button>
@@ -583,7 +578,7 @@ function BookingUserPage() {
                   setFormErrors({});
                   setConflictCheck(null);
                 }}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition"
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-3 px-4 rounded-lg transition"
               >
                 Cancel
               </button>
@@ -593,8 +588,8 @@ function BookingUserPage() {
       </div>
 
       {/* SEARCH & FILTER */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Search Your Bookings</h2>
+      <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Search & Filter</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-gray-700 font-semibold mb-2">
@@ -608,7 +603,7 @@ function BookingUserPage() {
                 setCurrentPage(0);
               }}
               placeholder="Search..."
-              className="w-full p-3 border border-gray-300 rounded-lg"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
             />
           </div>
           <div>
@@ -621,7 +616,7 @@ function BookingUserPage() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(0);
               }}
-              className="w-full p-3 border border-gray-300 rounded-lg"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
             >
               <option value="">All Statuses</option>
               <option value="PENDING">Pending</option>
@@ -637,7 +632,7 @@ function BookingUserPage() {
                 setStatusFilter("");
                 setCurrentPage(0);
               }}
-              className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition"
+              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-3 rounded-lg transition"
             >
               Clear Filters
             </button>
@@ -646,33 +641,40 @@ function BookingUserPage() {
       </div>
 
       {/* BOOKINGS LIST */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">Your Bookings</h2>
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-2xl font-bold text-gray-900">Your Bookings</h2>
         </div>
 
         {loading ? (
-          <div className="p-6 text-center text-gray-500">Loading...</div>
+          <div className="p-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading bookings...</p>
+          </div>
         ) : bookings.length === 0 ? (
-          <div className="p-6 text-center text-gray-400">No bookings found</div>
+          <div className="p-12 text-center">
+            <span className="text-6xl mb-4 block">📭</span>
+            <p className="text-gray-600 text-lg font-medium">No bookings found</p>
+            <p className="text-gray-500 text-sm mt-2">Create a new booking to get started</p>
+          </div>
         ) : (
           <div className="divide-y divide-gray-200">
             {[...bookings].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((booking) => (
               <div
                 key={booking.bookingId}
-                className="px-6 py-4 hover:bg-gray-50 transition"
+                className="px-6 py-5 hover:bg-gray-50 transition border-l-4 border-gray-200 hover:border-gray-900"
               >
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800">
+                    <h3 className="text-lg font-semibold text-gray-900">
                       {booking.resourceName}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-600 mt-1">
                       {booking.resourceType} • {booking.resourceLocation}
                     </p>
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
                       booking.status
                     )}`}
                   >
@@ -682,38 +684,38 @@ function BookingUserPage() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
                   <div>
-                    <p className="text-gray-500">Date</p>
-                    <p className="font-semibold text-gray-800">{booking.date}</p>
+                    <p className="text-gray-600 font-medium">Date</p>
+                    <p className="font-semibold text-gray-900 mt-1">{booking.date}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Time</p>
-                    <p className="font-semibold text-gray-800">
+                    <p className="text-gray-600 font-medium">Time</p>
+                    <p className="font-semibold text-gray-900 mt-1">
                       {booking.startTime} - {booking.endTime}
                     </p>
                   </div>
                   {booking.attendees && (
                     <div>
-                      <p className="text-gray-500">Attendees</p>
-                      <p className="font-semibold text-gray-800">
+                      <p className="text-gray-600 font-medium">Attendees</p>
+                      <p className="font-semibold text-gray-900 mt-1">
                         {booking.attendees} / {booking.resourceCapacity}
                       </p>
                     </div>
                   )}
                   <div>
-                    <p className="text-gray-500">Created</p>
-                    <p className="font-semibold text-gray-800">
+                    <p className="text-gray-600 font-medium">Created</p>
+                    <p className="font-semibold text-gray-900 mt-1">
                       {new Date(booking.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
 
-                <p className="text-gray-700 mb-4">
+                <p className="text-gray-700 mb-4 text-sm">
                   <strong>Purpose:</strong> {booking.purpose}
                 </p>
 
                 {booking.adminReason && (
                   <div className="bg-red-50 border border-red-200 p-3 rounded mb-4">
-                    <p className="text-sm">
+                    <p className="text-sm text-red-800">
                       <strong>Rejection Reason:</strong> {booking.adminReason}
                     </p>
                   </div>
@@ -725,13 +727,13 @@ function BookingUserPage() {
                     <>
                       <button
                         onClick={() => handleEdit(booking)}
-                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition text-sm"
+                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded text-sm font-medium transition"
                       >
                         ✏️ Edit
                       </button>
                       <button
                         onClick={() => handleCancel(booking.bookingId, "PENDING")}
-                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm"
+                        className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded text-sm font-medium transition"
                       >
                         ✕ Remove
                       </button>
@@ -740,12 +742,11 @@ function BookingUserPage() {
                   {booking.status === "APPROVED" && (
                     <button
                       onClick={() => handleCancel(booking.bookingId, "APPROVED")}
-                      className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm"
+                      className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded text-sm font-medium transition"
                     >
                       ✕ Cancel Booking
                     </button>
                   )}
-                  
                 </div>
               </div>
             ))}
