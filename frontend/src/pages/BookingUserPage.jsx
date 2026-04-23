@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/api";
-import { FiCalendar, FiBriefcase, FiClock, FiUsers, FiAlertCircle, FiCheckCircle, FiX } from "react-icons/fi";
+import { FiCalendar, FiBriefcase, FiClock, FiUsers, FiAlertCircle, FiCheckCircle, FiX, FiBox } from "react-icons/fi";
 
 function BookingUserPage() {
   const { user } = useAuth();
@@ -358,46 +358,104 @@ function BookingUserPage() {
         </div>
       )}
 
-      {/* CREATE/EDIT BOOKING FORM */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
-        <div
-          className="flex justify-between items-center cursor-pointer"
-          onClick={() => {
-            setShowForm(!showForm);
-            if (showForm) {
-              setEditing(null);
-              setFormData({
-                resourceId: "",
-                date: "",
-                startTime: "",
-                endTime: "",
-                purpose: "",
-                attendees: "",
-              });
-              setSelectedResource(null);
-              setFormErrors({});
-              setConflictCheck(null);
-            }
-          }}
-        >
-          <h2 className="text-2xl font-bold text-gray-900">
-            {editing ? "Edit Booking" : "New Booking"}
-          </h2>
-          <span className="text-2xl text-gray-600 group-hover:scale-110 transition">{showForm ? "▼" : "▶"}</span>
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Total Bookings */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300">
+          <div className="flex items-start justify-between mb-3">
+            <div className="p-2 rounded-lg text-indigo-600 bg-indigo-50">
+              <FiCalendar className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
+            Total Bookings
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{bookings.length}</p>
+        </div>
+
+        {/* Approved */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300">
+          <div className="flex items-start justify-between mb-3">
+            <div className="p-2 rounded-lg text-emerald-600 bg-emerald-50">
+              <FiCheckCircle className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
+            Approved
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{bookings.filter(b => b.status === "APPROVED").length}</p>
+        </div>
+
+        {/* Pending */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300">
+          <div className="flex items-start justify-between mb-3">
+            <div className="p-2 rounded-lg text-amber-600 bg-amber-50">
+              <FiClock className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
+            Pending
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{bookings.filter(b => b.status === "PENDING").length}</p>
+        </div>
+
+        {/* Rejected */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300">
+          <div className="flex items-start justify-between mb-3">
+            <div className="p-2 rounded-lg text-rose-600 bg-rose-50">
+              <FiX className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
+            Rejected
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{bookings.filter(b => b.status === "REJECTED").length}</p>
+        </div>
+      </div>
+
+      {/* BOOKINGS LIST */}
+      <div className="bg-white rounded-2xl border border-gray-200">
+        <div className="px-8 py-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">Your Bookings</h2>
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              if (showForm) {
+                setEditing(null);
+                setFormData({
+                  resourceId: "",
+                  date: "",
+                  startTime: "",
+                  endTime: "",
+                  purpose: "",
+                  attendees: "",
+                });
+                setSelectedResource(null);
+                setFormErrors({});
+                setConflictCheck(null);
+              }
+            }}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition text-base"
+          >
+            {editing ? "✕ Cancel" : "+ New Booking"}
+          </button>
         </div>
 
         {showForm && (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-6 text-gray-900">{editing ? "Edit Booking" : "New Booking"}</h2>
+              <form onSubmit={handleSubmit} className="space-y-5">
             {/* Resource Selection */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Resource <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.resourceId}
                 onChange={handleResourceChange}
-                className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
-                  formErrors.resourceId ? "border-red-500" : "border-gray-300 hover:border-gray-400"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  formErrors.resourceId ? "border-red-500" : "border-gray-300"
                 }`}
               >
                 <option value="">Select a resource</option>
@@ -435,7 +493,7 @@ function BookingUserPage() {
 
             {/* Date */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Date <span className="text-red-500">*</span>
               </label>
               <input
@@ -450,8 +508,8 @@ function BookingUserPage() {
                   setConflictCheck(null);
                 }}
                 min={new Date().toISOString().split("T")[0]}
-                className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
-                  formErrors.date ? "border-red-500" : "border-gray-300 hover:border-gray-400"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  formErrors.date ? "border-red-500" : "border-gray-300"
                 }`}
               />
               {formErrors.date && (
@@ -462,15 +520,15 @@ function BookingUserPage() {
             {/* Time Range */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Start Time <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => handleTimeChange("startTime", e.target.value)}
-                  className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
-                    formErrors.startTime ? "border-red-500" : "border-gray-300 hover:border-gray-400"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    formErrors.startTime ? "border-red-500" : "border-gray-300"
                   }`}
                 />
                 {formErrors.startTime && (
@@ -478,15 +536,15 @@ function BookingUserPage() {
                 )}
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   End Time <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => handleTimeChange("endTime", e.target.value)}
-                  className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
-                    formErrors.endTime ? "border-red-500" : "border-gray-300 hover:border-gray-400"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    formErrors.endTime ? "border-red-500" : "border-gray-300"
                   }`}
                 />
                 {formErrors.endTime && (
@@ -506,7 +564,7 @@ function BookingUserPage() {
 
             {/* Purpose */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Purpose <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -515,8 +573,8 @@ function BookingUserPage() {
                   setFormData({ ...formData, purpose: e.target.value })
                 }
                 placeholder="What will you use this resource for?"
-                className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
-                  formErrors.purpose ? "border-red-500" : "border-gray-300 hover:border-gray-400"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  formErrors.purpose ? "border-red-500" : "border-gray-300"
                 }`}
                 rows="3"
               />
@@ -528,7 +586,7 @@ function BookingUserPage() {
             {/* Attendees */}
             {selectedResource?.capacity && (
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Expected Attendees <span className="text-red-500">*</span>
                   <span className="text-gray-500 font-normal"> (Max: {selectedResource.capacity})</span>
                 </label>
@@ -542,8 +600,8 @@ function BookingUserPage() {
                   max={selectedResource.capacity}
                   placeholder="Number of attendees"
                   required
-                  className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition ${
-                    formErrors.attendees ? "border-red-500" : "border-gray-300 hover:border-gray-400"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    formErrors.attendees ? "border-red-500" : "border-gray-300"
                   }`}
                 />
                 {formErrors.attendees && (
@@ -553,11 +611,11 @@ function BookingUserPage() {
             )}
 
             {/* Buttons */}
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-3 pt-6">
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition disabled:opacity-50"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
               >
                 {loading ? "Saving..." : editing ? "Update Booking" : "Create Booking"}
               </button>
@@ -578,73 +636,62 @@ function BookingUserPage() {
                   setFormErrors({});
                   setConflictCheck(null);
                 }}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-3 px-4 rounded-lg transition"
+                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold py-3 rounded-lg transition"
               >
                 Cancel
               </button>
             </div>
-          </form>
+              </form>
+            </div>
+          </div>
         )}
-      </div>
 
-      {/* SEARCH & FILTER */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Search & Filter</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-gray-700 font-semibold mb-2">
-              Search by Purpose or Resource
-            </label>
-            <input
-              type="text"
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value);
-                setCurrentPage(0);
-              }}
-              placeholder="Search..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-semibold mb-2">
-              Filter by Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(0);
-              }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
-            >
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
-              <option value="REJECTED">Rejected</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setKeyword("");
-                setStatusFilter("");
-                setCurrentPage(0);
-              }}
-              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-3 rounded-lg transition"
-            >
-              Clear Filters
-            </button>
+        {/* SEARCH & FILTER */}
+        <div className="px-8 py-6 border-b border-gray-200 bg-white">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value);
+                  setCurrentPage(0);
+                }}
+                placeholder="Search..."
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 transition text-sm"
+              />
+            </div>
+            <div>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(0);
+                }}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 transition text-sm"
+              >
+                <option value="">All Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setKeyword("");
+                  setStatusFilter("");
+                  setCurrentPage(0);
+                }}
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2.5 rounded-lg transition text-sm"
+              >
+                Clear Filters
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* BOOKINGS LIST */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-2xl font-bold text-gray-900">Your Bookings</h2>
-        </div>
 
         {loading ? (
           <div className="p-12 text-center">
@@ -658,11 +705,11 @@ function BookingUserPage() {
             <p className="text-gray-500 text-sm mt-2">Create a new booking to get started</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
             {[...bookings].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((booking) => (
               <div
                 key={booking.bookingId}
-                className="px-6 py-5 hover:bg-gray-50 transition border-l-4 border-gray-200 hover:border-gray-900"
+                className="px-6 py-5 hover:bg-slate-100 hover:bg-blue-50/30 transition-all duration-200 border-l-4 border-gray-200 hover:border-blue-200"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -727,13 +774,12 @@ function BookingUserPage() {
                     <>
                       <button
                         onClick={() => handleEdit(booking)}
-                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded text-sm font-medium transition"
-                      >
+className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"                      >
                         ✏️ Edit
                       </button>
                       <button
                         onClick={() => handleCancel(booking.bookingId, "PENDING")}
-                        className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded text-sm font-medium transition"
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"
                       >
                         ✕ Remove
                       </button>
@@ -742,7 +788,7 @@ function BookingUserPage() {
                   {booking.status === "APPROVED" && (
                     <button
                       onClick={() => handleCancel(booking.bookingId, "APPROVED")}
-                      className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded text-sm font-medium transition"
+                      className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"
                     >
                       ✕ Cancel Booking
                     </button>
