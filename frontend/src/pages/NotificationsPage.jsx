@@ -20,7 +20,13 @@ function NotificationsPage() {
     return date.toLocaleDateString();
   };
 
-  const filteredNotifications = notifications.filter(n => {
+  const sortedNotifications = [...notifications].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  const filteredNotifications = sortedNotifications.filter(n => {
     if (filterType === "unread") return !n.read;
     if (filterType === "read") return n.read;
     return true;
