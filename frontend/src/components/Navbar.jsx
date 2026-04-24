@@ -6,7 +6,9 @@ function Navbar() {
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const { notifications } = useNotifications();
-  const notificationCount = notifications.filter(n => !n.isRead).length;
+  const isNotificationRead = (notification) => notification.read ?? notification.isRead ?? false;
+  const unreadNotifications = notifications.filter(n => !isNotificationRead(n));
+  const notificationCount = unreadNotifications.length;
 
   // Get page title based on route
   const getPageTitle = () => {
@@ -69,23 +71,23 @@ function Navbar() {
                 </div>
                 
                 <div className="max-h-96 overflow-y-auto">
-                  {notifications.length === 0 ? (
+                  {unreadNotifications.length === 0 ? (
                     <div className="p-8 text-center">
-                      <p className="text-sm text-gray-500">No notifications yet</p>
+                      <p className="text-sm text-gray-500">No unread notifications</p>
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-100">
-                      {notifications.slice(0, 8).map(n => (
+                      {unreadNotifications.slice(0, 8).map(n => (
                         <div
                           key={n.id}
                           className={`p-4 hover:bg-gray-50 transition cursor-pointer border-l-4 ${
-                            !n.isRead ? "border-l-blue-500 bg-blue-50/30" : "border-l-transparent"
+                            !isNotificationRead(n) ? "border-l-blue-500 bg-blue-50/30" : "border-l-transparent"
                           }`}
                         >
                           <div className="flex gap-3">
-                            <div className={`w-2.5 h-2.5 rounded-full mt-2 shrink-0 ${!n.isRead ? "bg-blue-600" : "bg-gray-300"}`}></div>
+                            <div className={`w-2.5 h-2.5 rounded-full mt-2 shrink-0 ${!isNotificationRead(n) ? "bg-blue-600" : "bg-gray-300"}`}></div>
                             <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-semibold ${!n.isRead ? "text-gray-900" : "text-gray-700"}`}>
+                              <p className={`text-sm font-semibold ${!isNotificationRead(n) ? "text-gray-900" : "text-gray-700"}`}>
                                 {n.title || n.message}
                               </p>
                               {n.title && <p className="text-xs text-gray-600 mt-1 line-clamp-2">{n.message}</p>}

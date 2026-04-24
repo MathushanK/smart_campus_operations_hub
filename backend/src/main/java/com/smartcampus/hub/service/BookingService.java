@@ -224,6 +224,7 @@ public class BookingService {
     public BookingDTO cancelBooking(Integer bookingId, Long userId, boolean isAdmin) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+        boolean wasApproved = booking.getStatus().equals(Booking.BookingStatus.APPROVED);
 
         // Check ownership for non-admins
         if (!isAdmin && !booking.getUser().getId().equals(userId)) {
@@ -249,6 +250,10 @@ public class BookingService {
         booking.setUpdatedAt(LocalDateTime.now());
 
         Booking updatedBooking = bookingRepository.save(booking);
+        if (wasApproved && !isAdmin) {
+            notifyAdminsForApprovedBookingCancellation(updatedBooking);
+            notifyBookingUser(updatedBooking, "CANCELLED");
+        }
         return convertToDTO(updatedBooking);
     }
 
@@ -431,6 +436,18 @@ public class BookingService {
         notificationService.createNotification(notification);
     }
 
+    private void notifyAdminsForApprovedBookingCancellation(Booking booking) {
+        String message = buildApprovedBookingCancellationMessage(booking);
+
+        for (User admin : userRepository.findAllAdmins()) {
+            Notification notification = new Notification();
+            notification.setUserId(admin.getId());
+            notification.setType("BOOKING_CANCELLED");
+            notification.setMessage(message);
+            notificationService.createNotification(notification);
+        }
+    }
+
     private String buildPendingBookingActionMessage(Booking booking, String action) {
         String userName = booking.getUser().getName();
         String resourceName = booking.getResource().getName();
@@ -513,6 +530,13 @@ public class BookingService {
                             ? " Reason: " + booking.getAdminReason()
                             : ""
             );
+            case "CANCELLED" -> String.format(
+                    "Your approved booking for %s on %s from %s to %s was cancelled.",
+                    resourceName,
+                    booking.getDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
             default -> String.format(
                     "Your booking for %s on %s from %s to %s was updated.",
                     resourceName,
@@ -521,6 +545,17 @@ public class BookingService {
                     booking.getEndTime()
             );
         };
+    }
+
+    private String buildApprovedBookingCancellationMessage(Booking booking) {
+        return String.format(
+                "%s cancelled an approved booking for %s on %s from %s to %s.",
+                booking.getUser().getName(),
+                booking.getResource().getName(),
+                booking.getDate(),
+                booking.getStartTime(),
+                booking.getEndTime()
+        );
     }
 
     /**
