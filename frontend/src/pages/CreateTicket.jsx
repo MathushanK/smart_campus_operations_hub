@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createTicket, uploadTicketImage } from "../api/ticketApi";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -13,7 +13,7 @@ function CreateTicket() {
     contactDetails: ""
   });
 
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState([]); // File[]
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,25 @@ function CreateTicket() {
   };
 
   const handleImageChange = (e) => {
-    setImages(e.target.files);
+    const files = Array.from(e.target.files || []);
+    setImages(files);
+  };
+
+  const previews = useMemo(() => {
+    return images.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+  }, [images]);
+
+  useEffect(() => {
+    return () => {
+      previews.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, [previews]);
+
+  const removeImage = (index) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -39,6 +57,7 @@ function CreateTicket() {
 
     setLoading(true);
     setError("");
+    setMessage("");
 
     try {
       // 1. Create ticket
@@ -58,7 +77,8 @@ function CreateTicket() {
 
     } catch (err) {
       console.error(err);
-      setError("❌ Failed to submit ticket");
+      const apiMessage = err?.response?.data?.error;
+      setError(apiMessage ? `❌ ${apiMessage}` : "❌ Failed to submit ticket");
     } finally {
       setLoading(false);
     }
@@ -67,7 +87,7 @@ function CreateTicket() {
   return (
     <Layout>
 
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
+      <div className="max-w-3xl mx-auto bg-white p-5 sm:p-8 rounded-2xl shadow-lg border">
 
         <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
           🎫 Create Ticket
@@ -96,20 +116,21 @@ function CreateTicket() {
             <input
               name="title"
               placeholder="e.g. WiFi not working"
-              className="w-full border p-3 rounded focus:ring-2 focus:ring-blue-400 outline-none"
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
               onChange={handleChange}
               required
             />
           </div>
 
-          {/* CATEGORY */}
-          <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* CATEGORY */}
+            <div>
             <label className="block mb-1 text-sm font-medium text-gray-700">
               Category
             </label>
             <select
               name="category"
-              className="w-full border p-3 rounded focus:ring-2 focus:ring-blue-400 outline-none"
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
               onChange={handleChange}
               required
             >
@@ -120,6 +141,26 @@ function CreateTicket() {
               <option value="Security">Security</option>
               <option value="Other">Other</option>
             </select>
+            </div>
+
+            {/* PRIORITY */}
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                Priority
+              </label>
+              <select
+                name="priority"
+                className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
+                onChange={handleChange}
+              >
+                <option value="LOW">Low (minor issue)</option>
+                <option value="MEDIUM">Medium (needs attention)</option>
+                <option value="HIGH">High (urgent issue)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Select HIGH only for urgent issues
+              </p>
+            </div>
           </div>
 
           {/* DESCRIPTION */}
@@ -130,29 +171,10 @@ function CreateTicket() {
             <textarea
               name="description"
               placeholder="Describe your issue clearly..."
-              className="w-full border p-3 rounded h-32 resize-none focus:ring-2 focus:ring-blue-400 outline-none"
+              className="w-full border p-3 rounded-lg h-32 resize-none focus:ring-2 focus:ring-blue-400 outline-none"
               onChange={handleChange}
               required
             />
-          </div>
-
-          {/* PRIORITY */}
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
-              Priority
-            </label>
-            <select
-              name="priority"
-              className="w-full border p-3 rounded focus:ring-2 focus:ring-blue-400 outline-none"
-              onChange={handleChange}
-            >
-              <option value="LOW">Low (minor issue)</option>
-              <option value="MEDIUM">Medium (needs attention)</option>
-              <option value="HIGH">High (urgent issue)</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              ⚠️ Select HIGH only for urgent issues
-            </p>
           </div>
 
           {/* CONTACT */}
@@ -163,7 +185,7 @@ function CreateTicket() {
             <input
               name="contactDetails"
               placeholder="Phone number or email"
-              className="w-full border p-3 rounded focus:ring-2 focus:ring-blue-400 outline-none"
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
               onChange={handleChange}
             />
           </div>
@@ -174,7 +196,7 @@ function CreateTicket() {
               Attach Images (Max 3)
             </label>
 
-            <div className="border-2 border-dashed border-gray-300 p-5 rounded-lg text-center hover:border-blue-400 transition">
+            <div className="border-2 border-dashed border-gray-300 p-5 rounded-xl text-center hover:border-blue-400 transition bg-gray-50">
               <input
                 type="file"
                 multiple
@@ -194,9 +216,32 @@ function CreateTicket() {
             </div>
 
             {images.length > 0 && (
-              <p className="text-sm text-gray-600 mt-2">
-                {images.length} file(s) selected
-              </p>
+              <div className="mt-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  {images.length} file(s) selected
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {previews.map((p, idx) => (
+                    <div key={p.url} className="relative border rounded-xl overflow-hidden bg-white">
+                      <img
+                        src={p.url}
+                        alt={p.file.name}
+                        className="w-full h-28 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded"
+                      >
+                        Remove
+                      </button>
+                      <div className="p-2">
+                        <p className="text-xs text-gray-600 truncate">{p.file.name}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 

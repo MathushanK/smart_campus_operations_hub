@@ -48,4 +48,5 @@ public class Ticket {
     public enum Status {
         OPEN, IN_PROGRESS, RESOLVED, CLOSED, REJECTED
     }
+
 }

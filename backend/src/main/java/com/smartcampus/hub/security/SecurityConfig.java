@@ -38,7 +38,8 @@ public class SecurityConfig {
                 .requestMatchers("/resource-types").permitAll()
 
                 // ✅ Member 3 endpoints
-                .requestMatchers("/tickets/**").permitAll()
+                .requestMatchers("/api/v1/tickets/**", "/tickets/**")
+                    .hasAnyRole("USER", "ADMIN", "TECHNICIAN")
                 // 👑 ADMIN
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 

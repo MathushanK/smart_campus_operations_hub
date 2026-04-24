@@ -1,11 +1,13 @@
 import Layout from "../components/Layout";
 import { useNotifications } from "../hooks/useNotifications";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function UserDashboard() {
   const { notifications, loading } = useNotifications();
   const { user } = useAuth();
   const userName = user?.name || "User";
+  const navigate = useNavigate();
 
   return (
     <Layout>
@@ -118,7 +120,10 @@ function UserDashboard() {
               📅 Book Resource
             </button>
             
-            <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg">
+            <button
+              onClick={() => navigate("/tickets/create")}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+            >
               🔧 Report Issue
             </button>
             

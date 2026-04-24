@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useNotifications } from "../hooks/useNotifications";
 
-function Navbar() {
+function Navbar({ onOpenSidebar }) {
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const { notifications } = useNotifications();
@@ -45,10 +45,21 @@ function Navbar() {
 
   return (
     <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-      <div className="flex justify-between items-center px-6 py-4">
+      <div className="flex justify-between items-center px-4 sm:px-6 py-4">
         
         {/* Left - Page Title with Icon */}
         <div className="flex items-center gap-3">
+          {/* Mobile: hamburger */}
+          <button
+            type="button"
+            onClick={onOpenSidebar}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-700"
+            aria-label="Open menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
           <div className="text-gray-600">
             {getPageIcon()}
           </div>

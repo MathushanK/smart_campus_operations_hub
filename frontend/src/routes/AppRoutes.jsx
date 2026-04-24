@@ -12,6 +12,7 @@ import { getDashboardPath } from "../utils/auth";
 import TicketList from "../pages/TicketList";
 import CreateTicket from "../pages/CreateTicket";
 import TicketDetails from "../pages/TicketDetails";
+import AdminTicketManagement from "../pages/AdminTicketManagement.jsx";
 
 function DashboardRedirect() {
   const { user } = useAuth();
@@ -32,6 +33,7 @@ function AppRoutes() {
       <Route path="/tickets/:id" element={<ProtectedRoute><TicketDetails /></ProtectedRoute>} />
       <Route path="/user/bookings" element={<ProtectedRoute allowedRoles={["user"]}><BookingUserPage /></ProtectedRoute>} />
       <Route path="/admin/bookings" element={<ProtectedRoute allowedRoles={["admin"]}><BookingAdminPage /></ProtectedRoute>} />
+      <Route path="/admin/tickets" element={<ProtectedRoute allowedRoles={["admin"]}><AdminTicketManagement /></ProtectedRoute>}/>
     </Routes>
   );
 }

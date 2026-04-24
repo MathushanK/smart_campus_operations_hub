@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface TicketAssignmentRepository extends JpaRepository<TicketAssignment, Long> {
     List<TicketAssignment> findByTechnicianId(Long technicianId);
+    List<TicketAssignment> findByTicketId(Long ticketId);
 }
