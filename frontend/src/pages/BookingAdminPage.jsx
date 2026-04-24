@@ -16,9 +16,6 @@ function BookingAdminPage() {
   const [statusFilter, setStatusFilter] = useState("");
 
   // Confirmation modals
-  const [showApproveModal, setShowApproveModal] = useState(false);
-  const [approvingBookingId, setApprovingBookingId] = useState(null);
-
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingBookingId, setRejectingBookingId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -70,17 +67,10 @@ function BookingAdminPage() {
     }
   };
 
-  const handleApproveClick = (bookingId) => {
-    setApprovingBookingId(bookingId);
-    setShowApproveModal(true);
-  };
-
-  const handleApproveConfirm = async () => {
+  const handleApprove = async (bookingId) => {
     try {
-      await API.patch(`/api/bookings/${approvingBookingId}/approve`);
+      await API.patch(`/api/bookings/${bookingId}/approve`);
       setSuccess("Booking approved successfully!");
-      setShowApproveModal(false);
-      setApprovingBookingId(null);
       fetchAllBookings();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -308,7 +298,7 @@ function BookingAdminPage() {
                         {booking.status === "PENDING" && (
                           <>
                             <button
-                              onClick={() => handleApproveClick(booking.bookingId)}
+                              onClick={() => handleApprove(booking.bookingId)}
                               className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded text-s font-medium transition"
                               title="Approve"
                             >
@@ -362,35 +352,6 @@ function BookingAdminPage() {
           </div>
           <div className="px-4 py-3">
             <p className="text-sm text-gray-700 leading-relaxed">{reasonPopup.reason}</p>
-          </div>
-        </div>
-      )}
-
-      {/* ===== APPROVE CONFIRMATION MODAL ===== */}
-      {showApproveModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-96">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mx-auto mb-4">
-              <FiCheck className="w-6 h-6 text-emerald-600" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center">Approve Booking?</h2>
-            <p className="text-gray-600 text-center mb-6">
-              Are you sure you want to approve this booking?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleApproveConfirm}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition"
-              >
-                Approve
-              </button>
-              <button
-                onClick={() => setShowApproveModal(false)}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded-lg transition"
-              >
-                Cancel
-              </button>
-            </div>
           </div>
         </div>
       )}
