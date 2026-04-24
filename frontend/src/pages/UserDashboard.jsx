@@ -1,6 +1,8 @@
 import Layout from "../components/Layout";
 import { useNotifications } from "../hooks/useNotifications";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+
 import API from "../api/api";
 import { useState, useEffect } from "react";
 import { FiBox, FiClock, FiCalendar, FiBell, FiAlertCircle } from "react-icons/fi";
@@ -9,6 +11,8 @@ function UserDashboard() {
   const { notifications, loading: notificationsLoading } = useNotifications();
   const { user } = useAuth();
   const userName = user?.name || "User";
+  const navigate = useNavigate();
+
   const [bookings, setBookings] = useState([]);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,6 +26,7 @@ function UserDashboard() {
           API.get("/api/bookings?size=1000"),
           API.get("/resources")
         ]);
+
         setBookings(bookingsRes.data.content || bookingsRes.data || []);
         setResources(resourcesRes.data || []);
       } catch (err) {
@@ -30,6 +35,7 @@ function UserDashboard() {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
@@ -52,7 +58,7 @@ function UserDashboard() {
 
       {/* STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        
+
         <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition">
           <div className="flex items-start justify-between mb-4">
             <div className="p-3 rounded-xl text-indigo-600 bg-indigo-50">
@@ -90,17 +96,15 @@ function UserDashboard() {
 
       {/* NOTIFICATIONS & INFO SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* NOTIFICATIONS SECTION */}
         <div className="lg:col-span-2">
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-            
-            {/* Header */}
+
             <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
               <h2 className="text-xl font-bold text-gray-900">Recent Notifications</h2>
             </div>
 
-            {/* Content */}
             <div className="p-6">
               {notificationsLoading ? (
                 <div className="text-center py-12">
@@ -116,10 +120,15 @@ function UserDashboard() {
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {notifications.slice(0, 5).map(n => (
-                    <div key={n.id} className={`flex items-start gap-3 p-4 rounded-lg border transition ${!n.read ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-200'} hover:border-gray-300`}>
-                      <div className={`w-2 h-2 mt-2 rounded-full shrink-0 ${!n.read ? 'bg-indigo-600' : 'bg-gray-400'}`}></div>
+                    <div
+                      key={n.id}
+                      className={`flex items-start gap-3 p-4 rounded-lg border transition ${
+                        !n.read ? "bg-indigo-50 border-indigo-200" : "bg-gray-50 border-gray-200"
+                      } hover:border-gray-300`}
+                    >
+                      <div className={`w-2 h-2 mt-2 rounded-full shrink-0 ${!n.read ? "bg-indigo-600" : "bg-gray-400"}`}></div>
                       <div className="flex-1 min-w-0">
-                        <p className={`font-medium text-sm ${!n.read ? 'text-gray-900' : 'text-gray-700'}`}>
+                        <p className={`font-medium text-sm ${!n.read ? "text-gray-900" : "text-gray-700"}`}>
                           {n.title || "Notification"}
                         </p>
                         <p className="text-gray-600 text-sm mt-1 line-clamp-2">{n.message}</p>
@@ -132,44 +141,50 @@ function UserDashboard() {
                 </div>
               )}
             </div>
+
           </div>
         </div>
 
-        {/* QUICK ACTIONS & INFO */}
+        {/* QUICK ACTIONS */}
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+
           <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
             <h2 className="text-xl font-bold text-gray-900">Quick Links</h2>
           </div>
-          
+
           <div className="p-6 space-y-3">
             <a href="/user/bookings" className="w-full block px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-lg transition text-center">
               My Bookings
             </a>
-            
+
+            <button
+              onClick={() => navigate("/tickets/create")}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition"
+            >
+              🔧 Report Issue
+            </button>
+
             <a href="/user/resources" className="w-full block px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-lg transition text-center">
               Browse Resources
             </a>
-            
+
             <a href="/notifications" className="w-full block px-4 py-3 border border-gray-300 hover:bg-gray-50 text-gray-900 font-medium rounded-lg transition text-center">
               All Notifications
             </a>
           </div>
 
-          {/* INFO BOX */}
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <div className="flex gap-3">
               <FiAlertCircle className="w-5 h-5 text-gray-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-medium text-gray-700 leading-relaxed">
-                  Bookings require admin approval. You'll be notified once your booking is reviewed.
-                </p>
-              </div>
+              <p className="text-xs font-medium text-gray-700 leading-relaxed">
+                Bookings require admin approval. You'll be notified once your booking is reviewed.
+              </p>
             </div>
           </div>
+
         </div>
 
       </div>
-
     </Layout>
   );
 }
