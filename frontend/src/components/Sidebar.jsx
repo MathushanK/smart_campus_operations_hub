@@ -29,11 +29,18 @@ function Sidebar() {
       )
     },
 
+   
     {
-      path: "/tickets",
-      label: user?.role === "technician"
-        ? "Manage Tickets"
-        : "My Tickets",
+      path:
+        user?.role === "admin"
+          ? "/admin/tickets"
+          : "/tickets",
+      label:
+        user?.role === "technician"
+          ? "My Assigned Tickets"
+          : user?.role === "admin"
+          ? "Tickets"
+          : "My Tickets",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
