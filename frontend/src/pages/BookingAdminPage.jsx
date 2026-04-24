@@ -15,7 +15,10 @@ function BookingAdminPage() {
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  // Rejection modal (for rejecting a booking)
+  // Confirmation modals
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approvingBookingId, setApprovingBookingId] = useState(null);
+
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingBookingId, setRejectingBookingId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -67,11 +70,17 @@ function BookingAdminPage() {
     }
   };
 
-  const handleApprove = async (bookingId) => {
-    if (!window.confirm("Approve this booking?")) return;
+  const handleApproveClick = (bookingId) => {
+    setApprovingBookingId(bookingId);
+    setShowApproveModal(true);
+  };
+
+  const handleApproveConfirm = async () => {
     try {
-      await API.patch(`/api/bookings/${bookingId}/approve`);
+      await API.patch(`/api/bookings/${approvingBookingId}/approve`);
       setSuccess("Booking approved successfully!");
+      setShowApproveModal(false);
+      setApprovingBookingId(null);
       fetchAllBookings();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -295,11 +304,11 @@ function BookingAdminPage() {
                   </td>
                   {bookings.some((b) => b.status === "PENDING") && (
                     <td className="px-4 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
                         {booking.status === "PENDING" && (
                           <>
                             <button
-                              onClick={() => handleApprove(booking.bookingId)}
+                              onClick={() => handleApproveClick(booking.bookingId)}
                               className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded text-s font-medium transition"
                               title="Approve"
                             >
@@ -357,31 +366,68 @@ function BookingAdminPage() {
         </div>
       )}
 
-      {/* Rejection Modal (for rejecting a booking) */}
+      {/* ===== APPROVE CONFIRMATION MODAL ===== */}
+      {showApproveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-96">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mx-auto mb-4">
+              <FiCheck className="w-6 h-6 text-emerald-600" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center">Approve Booking?</h2>
+            <p className="text-gray-600 text-center mb-6">
+              Are you sure you want to approve this booking?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleApproveConfirm}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => setShowApproveModal(false)}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded-lg transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== REJECT CONFIRMATION MODAL ===== */}
       {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Reject Booking</h2>
-            <p className="text-gray-600 mb-6">Please provide a reason for rejecting this booking.</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-96">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+              <FiAlertCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center">Reject Booking?</h2>
+            <p className="text-gray-600 text-center mb-4">
+              Please provide a reason for rejecting this booking.
+            </p>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Enter rejection reason..."
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 mb-6"
-              rows="4"
+              rows="3"
             />
             <div className="flex gap-3">
               <button
-                onClick={() => setShowRejectModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition"
-              >
-                Cancel
-              </button>
-              <button
                 onClick={handleRejectSubmit}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition"
               >
                 Reject
+              </button>
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason("");
+                }}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded-lg transition"
+              >
+                Cancel
               </button>
             </div>
           </div>
