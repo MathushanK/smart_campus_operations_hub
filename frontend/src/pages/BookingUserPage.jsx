@@ -32,6 +32,11 @@ function BookingUserPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
 
+  // Cancel confirmation modals
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancellingBookingId, setCancellingBookingId] = useState(null);
+  const [cancellingBookingStatus, setCancellingBookingStatus] = useState(null);
+
   // Load resources for dropdown
   useEffect(() => {
     const fetchResources = async () => {
@@ -296,18 +301,25 @@ function BookingUserPage() {
     });
   };
 
-  // Handle cancel
-  const handleCancel = async (bookingId, status) => {
-    const message = status === "PENDING" ? "Are you sure you want to remove this booking?" : "Are you sure you want to cancel this booking?";
-    if (!window.confirm(message)) return;
+  // Handle cancel - show confirmation modal
+  const handleCancelClick = (bookingId, status) => {
+    setCancellingBookingId(bookingId);
+    setCancellingBookingStatus(status);
+    setShowCancelModal(true);
+  };
 
+  // Confirm cancel - execute the API call
+  const handleCancelConfirm = async () => {
     try {
       // Use DELETE for PENDING bookings (remove from database), PATCH for others (change status)
-      const endpoint = status === "PENDING" ? `/api/bookings/${bookingId}` : `/api/bookings/${bookingId}/cancel`;
-      const method = status === "PENDING" ? API.delete : API.patch;
+      const endpoint = cancellingBookingStatus === "PENDING" ? `/api/bookings/${cancellingBookingId}` : `/api/bookings/${cancellingBookingId}/cancel`;
+      const method = cancellingBookingStatus === "PENDING" ? API.delete : API.patch;
       await method(endpoint);
-      const successMsg = status === "PENDING" ? "Booking removed successfully!" : "Booking cancelled successfully!";
+      const successMsg = cancellingBookingStatus === "PENDING" ? "Booking removed successfully!" : "Booking cancelled successfully!";
       setSuccess(successMsg);
+      setShowCancelModal(false);
+      setCancellingBookingId(null);
+      setCancellingBookingStatus(null);
       fetchUserBookings();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -774,11 +786,12 @@ function BookingUserPage() {
                     <>
                       <button
                         onClick={() => handleEdit(booking)}
-className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"                      >
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"
+                      >
                         ✏️ Edit
                       </button>
                       <button
-                        onClick={() => handleCancel(booking.bookingId, "PENDING")}
+                        onClick={() => handleCancelClick(booking.bookingId, "PENDING")}
                         className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"
                       >
                         ✕ Remove
@@ -787,7 +800,7 @@ className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm
                   )}
                   {booking.status === "APPROVED" && (
                     <button
-                      onClick={() => handleCancel(booking.bookingId, "APPROVED")}
+                      onClick={() => handleCancelClick(booking.bookingId, "APPROVED")}
                       className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"
                     >
                       ✕ Cancel Booking
@@ -799,6 +812,64 @@ className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm
           </div>
         )}
       </div>
+
+      {/* ===== REMOVE PENDING BOOKING MODAL ===== */}
+      {showCancelModal && cancellingBookingStatus === "PENDING" && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-96">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+              <FiAlertCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center">Remove Booking?</h2>
+            <p className="text-gray-600 text-center mb-6">
+              Are you sure you want to remove this pending booking?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelConfirm}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition"
+              >
+                Remove
+              </button>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded-lg transition"
+              >
+                Keep It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== CANCEL APPROVED BOOKING MODAL ===== */}
+      {showCancelModal && cancellingBookingStatus === "APPROVED" && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-96">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mx-auto mb-4">
+              <FiAlertCircle className="w-6 h-6 text-gray-600" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center">Cancel Booking?</h2>
+            <p className="text-gray-600 text-center mb-6">
+              Are you sure you want to cancel this approved booking?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelConfirm}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 rounded-lg transition"
+              >
+                Cancel Booking
+              </button>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded-lg transition"
+              >
+                Keep It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
