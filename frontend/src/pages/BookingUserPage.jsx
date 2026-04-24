@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/api";
+import { FiCalendar, FiBriefcase, FiClock, FiUsers, FiAlertCircle, FiCheckCircle, FiX, FiBox } from "react-icons/fi";
 
 function BookingUserPage() {
   const { user } = useAuth();
@@ -30,6 +31,11 @@ function BookingUserPage() {
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
+
+  // Cancel confirmation modals
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancellingBookingId, setCancellingBookingId] = useState(null);
+  const [cancellingBookingStatus, setCancellingBookingStatus] = useState(null);
 
   // Load resources for dropdown
   useEffect(() => {
@@ -295,18 +301,25 @@ function BookingUserPage() {
     });
   };
 
-  // Handle cancel
-  const handleCancel = async (bookingId, status) => {
-    const message = status === "PENDING" ? "Are you sure you want to remove this booking?" : "Are you sure you want to cancel this booking?";
-    if (!window.confirm(message)) return;
+  // Handle cancel - show confirmation modal
+  const handleCancelClick = (bookingId, status) => {
+    setCancellingBookingId(bookingId);
+    setCancellingBookingStatus(status);
+    setShowCancelModal(true);
+  };
 
+  // Confirm cancel - execute the API call
+  const handleCancelConfirm = async () => {
     try {
       // Use DELETE for PENDING bookings (remove from database), PATCH for others (change status)
-      const endpoint = status === "PENDING" ? `/api/bookings/${bookingId}` : `/api/bookings/${bookingId}/cancel`;
-      const method = status === "PENDING" ? API.delete : API.patch;
+      const endpoint = cancellingBookingStatus === "PENDING" ? `/api/bookings/${cancellingBookingId}` : `/api/bookings/${cancellingBookingId}/cancel`;
+      const method = cancellingBookingStatus === "PENDING" ? API.delete : API.patch;
       await method(endpoint);
-      const successMsg = status === "PENDING" ? "Booking removed successfully!" : "Booking cancelled successfully!";
+      const successMsg = cancellingBookingStatus === "PENDING" ? "Booking removed successfully!" : "Booking cancelled successfully!";
       setSuccess(successMsg);
+      setShowCancelModal(false);
+      setCancellingBookingId(null);
+      setCancellingBookingStatus(null);
       fetchUserBookings();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -327,20 +340,23 @@ function BookingUserPage() {
 
   return (
     <Layout>
-      {/* HEADER */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-2xl p-8 mb-8 shadow-lg text-white">
-        <h1 className="text-4xl font-bold mb-2">My Bookings 📅</h1>
-        <p className="text-blue-100">Create, manage, and track your resource bookings</p>
-        <p className="text-blue-50 text-sm mt-2">Signed in as {user?.name}</p>
+      {/* Minimalist Apple-Style Header */}
+      <div className="mb-12 mt-2">
+        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
+          My Bookings
+        </h1>
+        <p className="text-xl text-gray-500 mt-3 font-light">
+          Create, manage, and track your resource bookings
+        </p>
       </div>
 
       {/* ALERTS */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-lg mb-4 flex justify-between items-center">
+          <span className="font-medium">{error}</span>
           <button
             onClick={() => setError("")}
-            className="float-right font-bold"
+            className="text-red-600 hover:text-red-800 font-bold text-lg"
           >
             ✕
           </button>
@@ -348,50 +364,109 @@ function BookingUserPage() {
       )}
 
       {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4">
-          ✓ {success}
+        <div className="bg-green-50 border border-green-200 text-green-700 px-5 py-4 rounded-lg mb-4 flex items-center gap-3">
+          <span className="text-lg font-bold">✓</span>
+          <span className="font-medium">{success}</span>
         </div>
       )}
 
-      {/* CREATE/EDIT BOOKING FORM */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-        <div
-          className="flex justify-between items-center cursor-pointer"
-          onClick={() => {
-            setShowForm(!showForm);
-            if (showForm) {
-              setEditing(null);
-              setFormData({
-                resourceId: "",
-                date: "",
-                startTime: "",
-                endTime: "",
-                purpose: "",
-                attendees: "",
-              });
-              setSelectedResource(null);
-              setFormErrors({});
-              setConflictCheck(null);
-            }
-          }}
-        >
-          <h2 className="text-2xl font-bold text-gray-800">
-            {editing ? "Edit Booking" : "New Booking"}
-          </h2>
-          <span className="text-2xl">{showForm ? "▼" : "▶"}</span>
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Total Bookings */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300">
+          <div className="flex items-start justify-between mb-3">
+            <div className="p-2 rounded-lg text-indigo-600 bg-indigo-50">
+              <FiCalendar className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
+            Total Bookings
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{bookings.length}</p>
+        </div>
+
+        {/* Approved */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300">
+          <div className="flex items-start justify-between mb-3">
+            <div className="p-2 rounded-lg text-emerald-600 bg-emerald-50">
+              <FiCheckCircle className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
+            Approved
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{bookings.filter(b => b.status === "APPROVED").length}</p>
+        </div>
+
+        {/* Pending */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300">
+          <div className="flex items-start justify-between mb-3">
+            <div className="p-2 rounded-lg text-amber-600 bg-amber-50">
+              <FiClock className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
+            Pending
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{bookings.filter(b => b.status === "PENDING").length}</p>
+        </div>
+
+        {/* Rejected */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition duration-300">
+          <div className="flex items-start justify-between mb-3">
+            <div className="p-2 rounded-lg text-rose-600 bg-rose-50">
+              <FiX className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
+            Rejected
+          </p>
+          <p className="text-2xl font-bold text-gray-900">{bookings.filter(b => b.status === "REJECTED").length}</p>
+        </div>
+      </div>
+
+      {/* BOOKINGS LIST */}
+      <div className="bg-white rounded-2xl border border-gray-200">
+        <div className="px-8 py-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">Your Bookings</h2>
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              if (showForm) {
+                setEditing(null);
+                setFormData({
+                  resourceId: "",
+                  date: "",
+                  startTime: "",
+                  endTime: "",
+                  purpose: "",
+                  attendees: "",
+                });
+                setSelectedResource(null);
+                setFormErrors({});
+                setConflictCheck(null);
+              }
+            }}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition text-base"
+          >
+            {editing ? "✕ Cancel" : "+ New Booking"}
+          </button>
         </div>
 
         {showForm && (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-6 text-gray-900">{editing ? "Edit Booking" : "New Booking"}</h2>
+              <form onSubmit={handleSubmit} className="space-y-5">
             {/* Resource Selection */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                Resource *
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Resource <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.resourceId}
                 onChange={handleResourceChange}
-                className={`w-full p-3 border rounded-lg ${
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                   formErrors.resourceId ? "border-red-500" : "border-gray-300"
                 }`}
               >
@@ -414,32 +489,30 @@ function BookingUserPage() {
                 ))}
               </select>
               {selectedResource && (
-                <p className="text-sm text-blue-600 mt-2">
-                  📍 Available: {selectedResource.availabilityStart} -{" "}
-                  {selectedResource.availabilityEnd}
+                <p className="text-sm text-gray-600 mt-2 font-medium">
+                  Available: {selectedResource.availabilityStart} - {selectedResource.availabilityEnd}
                   {selectedResource.capacity && (
-                    <span className="ml-2 bg-blue-100 px-2 py-1 rounded">
+                    <span className="ml-2 bg-gray-100 text-gray-700 px-2 py-1 rounded font-semibold text-xs">
                       Max {selectedResource.capacity}
                     </span>
                   )}
                 </p>
               )}
               {formErrors.resourceId && (
-                <p className="text-red-500 text-sm">{formErrors.resourceId}</p>
+                <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.resourceId}</p>
               )}
             </div>
 
             {/* Date */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                Date *
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Date <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => {
                   setFormData({ ...formData, date: e.target.value });
-                  // Clear time-related errors when date changes
                   const newFormErrors = { ...formErrors };
                   delete newFormErrors.time;
                   delete newFormErrors.conflict;
@@ -447,72 +520,64 @@ function BookingUserPage() {
                   setConflictCheck(null);
                 }}
                 min={new Date().toISOString().split("T")[0]}
-                className={`w-full p-3 border rounded-lg ${
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                   formErrors.date ? "border-red-500" : "border-gray-300"
                 }`}
               />
               {formErrors.date && (
-                <p className="text-red-500 text-sm">{formErrors.date}</p>
+                <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.date}</p>
               )}
             </div>
 
             {/* Time Range */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Start Time *
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Start Time <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => handleTimeChange("startTime", e.target.value)}
-                  className={`w-full p-3 border rounded-lg ${
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                     formErrors.startTime ? "border-red-500" : "border-gray-300"
                   }`}
                 />
                 {formErrors.startTime && (
-                  <p className="text-red-500 text-sm">{formErrors.startTime}</p>
+                  <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.startTime}</p>
                 )}
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">
-                  End Time *
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  End Time <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => handleTimeChange("endTime", e.target.value)}
-                  className={`w-full p-3 border rounded-lg ${
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                     formErrors.endTime ? "border-red-500" : "border-gray-300"
                   }`}
                 />
                 {formErrors.endTime && (
-                  <p className="text-red-500 text-sm">{formErrors.endTime}</p>
+                  <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.endTime}</p>
                 )}
               </div>
             </div>
 
-            {/* Conflict Check */}
-            {conflictCheck && conflictCheck.hasConflict && (
-              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                {`⚠️ ${conflictCheck.message}`}
-              </div>
-            )}
-            {formErrors.time && (
-              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                ⚠️ {formErrors.time}
-              </div>
-            )}
-            {formErrors.conflict && (
-              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                ⚠️ {formErrors.conflict}
+            {/* Conflict Check & Time Errors */}
+            {(conflictCheck?.hasConflict || formErrors.time || formErrors.conflict) && (
+              <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg font-medium">
+                {conflictCheck?.hasConflict && <div>⚠️ {conflictCheck.message}</div>}
+                {formErrors.time && <div>⚠️ {formErrors.time}</div>}
+                {formErrors.conflict && <div>⚠️ {formErrors.conflict}</div>}
               </div>
             )}
 
             {/* Purpose */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                Purpose *
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Purpose <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.purpose}
@@ -520,21 +585,22 @@ function BookingUserPage() {
                   setFormData({ ...formData, purpose: e.target.value })
                 }
                 placeholder="What will you use this resource for?"
-                className={`w-full p-3 border rounded-lg ${
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                   formErrors.purpose ? "border-red-500" : "border-gray-300"
                 }`}
                 rows="3"
               />
               {formErrors.purpose && (
-                <p className="text-red-500 text-sm">{formErrors.purpose}</p>
+                <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.purpose}</p>
               )}
             </div>
 
-            {/* Attendees (only if capacity exists) */}
+            {/* Attendees */}
             {selectedResource?.capacity && (
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Expected Attendees * (Max: {selectedResource.capacity})
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Expected Attendees <span className="text-red-500">*</span>
+                  <span className="text-gray-500 font-normal"> (Max: {selectedResource.capacity})</span>
                 </label>
                 <input
                   type="number"
@@ -546,23 +612,22 @@ function BookingUserPage() {
                   max={selectedResource.capacity}
                   placeholder="Number of attendees"
                   required
-                  className={`w-full p-3 border rounded-lg ${
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                     formErrors.attendees ? "border-red-500" : "border-gray-300"
                   }`}
                 />
                 {formErrors.attendees && (
-                  <p className="text-red-500 text-sm">{formErrors.attendees}</p>
+                  <p className="text-red-500 text-sm mt-1 font-medium">⚠️ {formErrors.attendees}</p>
                 )}
               </div>
             )}
-          
 
             {/* Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-6">
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
               >
                 {loading ? "Saving..." : editing ? "Update Booking" : "Create Booking"}
               </button>
@@ -583,96 +648,92 @@ function BookingUserPage() {
                   setFormErrors({});
                   setConflictCheck(null);
                 }}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition"
+                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold py-3 rounded-lg transition"
               >
                 Cancel
               </button>
             </div>
-          </form>
+              </form>
+            </div>
+          </div>
         )}
-      </div>
 
-      {/* SEARCH & FILTER */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Search Your Bookings</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-gray-700 font-semibold mb-2">
-              Search by Purpose or Resource
-            </label>
-            <input
-              type="text"
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value);
-                setCurrentPage(0);
-              }}
-              placeholder="Search..."
-              className="w-full p-3 border border-gray-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-semibold mb-2">
-              Filter by Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(0);
-              }}
-              className="w-full p-3 border border-gray-300 rounded-lg"
-            >
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
-              <option value="REJECTED">Rejected</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setKeyword("");
-                setStatusFilter("");
-                setCurrentPage(0);
-              }}
-              className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg transition"
-            >
-              Clear Filters
-            </button>
+        {/* SEARCH & FILTER */}
+        <div className="px-8 py-6 border-b border-gray-200 bg-white">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value);
+                  setCurrentPage(0);
+                }}
+                placeholder="Search..."
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 transition text-sm"
+              />
+            </div>
+            <div>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(0);
+                }}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 transition text-sm"
+              >
+                <option value="">All Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setKeyword("");
+                  setStatusFilter("");
+                  setCurrentPage(0);
+                }}
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2.5 rounded-lg transition text-sm"
+              >
+                Clear Filters
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* BOOKINGS LIST */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">Your Bookings</h2>
-        </div>
 
         {loading ? (
-          <div className="p-6 text-center text-gray-500">Loading...</div>
+          <div className="p-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading bookings...</p>
+          </div>
         ) : bookings.length === 0 ? (
-          <div className="p-6 text-center text-gray-400">No bookings found</div>
+          <div className="p-12 text-center">
+            <span className="text-6xl mb-4 block">📭</span>
+            <p className="text-gray-600 text-lg font-medium">No bookings found</p>
+            <p className="text-gray-500 text-sm mt-2">Create a new booking to get started</p>
+          </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
             {[...bookings].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((booking) => (
               <div
                 key={booking.bookingId}
-                className="px-6 py-4 hover:bg-gray-50 transition"
+                className="px-6 py-5 hover:bg-slate-100 hover:bg-blue-50/30 transition-all duration-200 border-l-4 border-gray-200 hover:border-blue-200"
               >
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800">
+                    <h3 className="text-lg font-semibold text-gray-900">
                       {booking.resourceName}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-600 mt-1">
                       {booking.resourceType} • {booking.resourceLocation}
                     </p>
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
                       booking.status
                     )}`}
                   >
@@ -682,38 +743,38 @@ function BookingUserPage() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
                   <div>
-                    <p className="text-gray-500">Date</p>
-                    <p className="font-semibold text-gray-800">{booking.date}</p>
+                    <p className="text-gray-600 font-medium">Date</p>
+                    <p className="font-semibold text-gray-900 mt-1">{booking.date}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Time</p>
-                    <p className="font-semibold text-gray-800">
+                    <p className="text-gray-600 font-medium">Time</p>
+                    <p className="font-semibold text-gray-900 mt-1">
                       {booking.startTime} - {booking.endTime}
                     </p>
                   </div>
                   {booking.attendees && (
                     <div>
-                      <p className="text-gray-500">Attendees</p>
-                      <p className="font-semibold text-gray-800">
+                      <p className="text-gray-600 font-medium">Attendees</p>
+                      <p className="font-semibold text-gray-900 mt-1">
                         {booking.attendees} / {booking.resourceCapacity}
                       </p>
                     </div>
                   )}
                   <div>
-                    <p className="text-gray-500">Created</p>
-                    <p className="font-semibold text-gray-800">
+                    <p className="text-gray-600 font-medium">Created</p>
+                    <p className="font-semibold text-gray-900 mt-1">
                       {new Date(booking.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
 
-                <p className="text-gray-700 mb-4">
+                <p className="text-gray-700 mb-4 text-sm">
                   <strong>Purpose:</strong> {booking.purpose}
                 </p>
 
                 {booking.adminReason && (
                   <div className="bg-red-50 border border-red-200 p-3 rounded mb-4">
-                    <p className="text-sm">
+                    <p className="text-sm text-red-800">
                       <strong>Rejection Reason:</strong> {booking.adminReason}
                     </p>
                   </div>
@@ -725,13 +786,13 @@ function BookingUserPage() {
                     <>
                       <button
                         onClick={() => handleEdit(booking)}
-                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition text-sm"
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"
                       >
                         ✏️ Edit
                       </button>
                       <button
-                        onClick={() => handleCancel(booking.bookingId, "PENDING")}
-                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm"
+                        onClick={() => handleCancelClick(booking.bookingId, "PENDING")}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"
                       >
                         ✕ Remove
                       </button>
@@ -739,19 +800,76 @@ function BookingUserPage() {
                   )}
                   {booking.status === "APPROVED" && (
                     <button
-                      onClick={() => handleCancel(booking.bookingId, "APPROVED")}
-                      className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm"
+                      onClick={() => handleCancelClick(booking.bookingId, "APPROVED")}
+                      className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition duration-200 shadow-sm"
                     >
                       ✕ Cancel Booking
                     </button>
                   )}
-                  
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* ===== REMOVE PENDING BOOKING MODAL ===== */}
+      {showCancelModal && cancellingBookingStatus === "PENDING" && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-96">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+              <FiAlertCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center">Remove Booking?</h2>
+            <p className="text-gray-600 text-center mb-6">
+              Are you sure you want to remove this pending booking?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelConfirm}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition"
+              >
+                Remove
+              </button>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded-lg transition"
+              >
+                Keep It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== CANCEL APPROVED BOOKING MODAL ===== */}
+      {showCancelModal && cancellingBookingStatus === "APPROVED" && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-96">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mx-auto mb-4">
+              <FiAlertCircle className="w-6 h-6 text-gray-600" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900 text-center">Cancel Booking?</h2>
+            <p className="text-gray-600 text-center mb-6">
+              Are you sure you want to cancel this approved booking?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelConfirm}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 rounded-lg transition"
+              >
+                Cancel Booking
+              </button>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded-lg transition"
+              >
+                Keep It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
