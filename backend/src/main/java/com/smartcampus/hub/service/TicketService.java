@@ -7,6 +7,7 @@ import com.smartcampus.hub.repository.*;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -16,12 +17,21 @@ public class TicketService {
     private final TicketCommentRepository commentRepo;
     private final TicketAssignmentRepository assignRepo;
     private final TicketImageRepository imageRepo;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     // CREATE
     public Ticket createTicket(Ticket ticket) {
         ticket.setStatus(Ticket.Status.OPEN);
         ticket.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-        return ticketRepo.save(ticket);
+        Ticket savedTicket = ticketRepo.save(ticket);
+
+        notifyAdmins(
+            "TICKET_CREATED",
+            "New ticket #" + savedTicket.getId() + " created: " + ticketLabel(savedTicket)
+        );
+
+        return savedTicket;
     }
 
     // USER TICKETS
@@ -50,7 +60,15 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
         t.setStatus(Ticket.Status.valueOf(status.toUpperCase()));
-        return ticketRepo.save(t);
+        Ticket savedTicket = ticketRepo.save(t);
+
+        notifyUser(
+            savedTicket.getUserId(),
+            "TICKET_STATUS_UPDATED",
+            "Your ticket #" + savedTicket.getId() + " is now " + savedTicket.getStatus() + "."
+        );
+
+        return savedTicket;
     }
 
     // ADD IMAGE
@@ -90,7 +108,16 @@ public class TicketService {
             t.setRejectionReason(reason);
         }
 
-        return ticketRepo.save(t);
+        Ticket savedTicket = ticketRepo.save(t);
+
+        String message = "Your ticket #" + savedTicket.getId() + " was updated to " + savedTicket.getStatus() + ".";
+        if (savedTicket.getStatus() == Ticket.Status.REJECTED && reason != null && !reason.isBlank()) {
+            message += " Reason: " + reason;
+        }
+
+        notifyUser(savedTicket.getUserId(), "TICKET_ADMIN_STATUS_UPDATED", message);
+
+        return savedTicket;
     }
 
     public TicketAssignment assignTechnician(Long ticketId, Long technicianId) {
@@ -103,7 +130,23 @@ public class TicketService {
         assign.setTechnicianId(technicianId);
         assign.setAssignedAt(new Timestamp(System.currentTimeMillis()));
 
-        return assignRepo.save(assign);
+        TicketAssignment savedAssignment = assignRepo.save(assign);
+
+        ticketRepo.findById(ticketId).ifPresent(ticket -> {
+            notifyUser(
+                technicianId,
+                "TICKET_ASSIGNED",
+                "You were assigned ticket #" + ticketId + ": " + ticketLabel(ticket)
+            );
+
+            notifyUser(
+                ticket.getUserId(),
+                "TICKET_ASSIGNED",
+                "Your ticket #" + ticketId + " has been assigned to a technician."
+            );
+        });
+
+        return savedAssignment;
     }
 
     public TicketAssignment updateResolutionNotes(Long ticketId, Long technicianId, String notes) {
@@ -118,7 +161,16 @@ public class TicketService {
         }
 
         assign.setResolutionNotes(notes);
-        return assignRepo.save(assign);
+        TicketAssignment savedAssignment = assignRepo.save(assign);
+
+        notifyTicketStakeholders(
+            ticketId,
+            technicianId,
+            "TICKET_RESOLUTION_UPDATED",
+            "Resolution notes were updated for ticket #" + ticketId + "."
+        );
+
+        return savedAssignment;
     }
 
     public TicketAssignment getAssignment(Long ticketId) {
@@ -138,7 +190,16 @@ public class TicketService {
         c.setUserId(userId);
         c.setComment(comment);
         c.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-        return commentRepo.save(c);
+        TicketComment savedComment = commentRepo.save(c);
+
+        notifyTicketStakeholders(
+            ticketId,
+            userId,
+            "TICKET_COMMENT_ADDED",
+            "A new comment was added to ticket #" + ticketId + "."
+        );
+
+        return savedComment;
     }
 
     public TicketComment updateComment(Long commentId, Long userId, boolean isAdmin, String newText) {
@@ -162,5 +223,56 @@ public class TicketService {
         }
 
         commentRepo.deleteById(commentId);
+    }
+
+    private void notifyAdmins(String type, String message) {
+        userRepository.findAllAdmins().forEach(admin -> notifyUser(admin.getId(), type, message));
+    }
+
+    private void notifyTicketStakeholders(Long ticketId, Long actorUserId, String type, String message) {
+        Ticket ticket = ticketRepo.findById(ticketId).orElse(null);
+        if (ticket == null) {
+            return;
+        }
+
+        notifyUserIfDifferent(ticket.getUserId(), actorUserId, type, message);
+
+        TicketAssignment assignment = getAssignment(ticketId);
+        if (assignment != null) {
+            notifyUserIfDifferent(assignment.getTechnicianId(), actorUserId, type, message);
+        }
+
+        userRepository.findAllAdmins().forEach(admin ->
+            notifyUserIfDifferent(admin.getId(), actorUserId, type, message)
+        );
+    }
+
+    private void notifyUserIfDifferent(Long targetUserId, Long actorUserId, String type, String message) {
+        if (targetUserId == null || Objects.equals(targetUserId, actorUserId)) {
+            return;
+        }
+        notifyUser(targetUserId, type, message);
+    }
+
+    private void notifyUser(Long userId, String type, String message) {
+        if (userId == null) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setUserId(userId);
+        notification.setType(type);
+        notification.setMessage(message);
+        notificationService.createNotification(notification);
+    }
+
+    private String ticketLabel(Ticket ticket) {
+        if (ticket.getTitle() != null && !ticket.getTitle().isBlank()) {
+            return ticket.getTitle();
+        }
+        if (ticket.getCategory() != null && !ticket.getCategory().isBlank()) {
+            return ticket.getCategory();
+        }
+        return "Ticket";
     }
 }
